@@ -1,0 +1,119 @@
+/* src/styles/Table.css */
+.table-container {
+    background: white;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    overflow-x: auto;
+}
+
+.styled-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.styled-table thead tr {
+    background-color: var(--primary-color);
+    color: white;
+    text-align: left;
+}
+
+.styled-table th, .styled-table td {
+    padding: 12px 15px;
+}
+
+.styled-table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.styled-table tbody tr:nth-of-type(even) {
+    background-color: #f3f3ff;
+}
+
+.styled-table tbody tr:last-of-type {
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.action-buttons a, .action-buttons button {
+    margin-right: 8px;
+    padding: 6px 10px;
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    color: white;
+}
+.btn-danger {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+/* --- Estilos para la Vista Detallada de la Rúbrica --- */
+.rubrica-view-container {
+    background: white;
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+.rubrica-header {
+    margin-bottom: 2rem;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 1rem;
+}
+
+.visual-rubrica-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.5rem;
+    table-layout: fixed;
+}
+
+.visual-rubrica-table th,
+.visual-rubrica-table td {
+    border: 1px solid #ccc;
+    padding: 12px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.visual-rubrica-table thead th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+    color: var(--dark-color);
+    vertical-align: middle;
+    text-align: center;
+}
+
+.visual-rubrica-table .criterio-cell-vertical {
+    width: 20%;
+    font-weight: bold;
+    background-color: #f8f9fa;
+    vertical-align: middle;
+    text-align: center;
+}
+
+/* --- MODIFICACIONES Y NUEVAS CLASES PARA LA ALINEACIÓN DEL INDICADOR --- */
+
+.visual-rubrica-table .indicador-cell-visual {
+    width: 25%;
+    /* Convertimos la celda en un contenedor flex para alinear sus hijos */
+    display: flex;
+    /* Alineamos los hijos al inicio (arriba) */
+    align-items: flex-start;
+    /* Añadimos un pequeño espacio entre el número y el texto */
+    gap: 10px;
+}
+
+/* Nueva clase para el contenedor del número */
+.indicador-number {
+    /* Le damos un ancho mínimo para que los números se alineen */
+    min-width: 15px;
+    text-align: right;
+    font-weight: normal; /* El número no está en negrita en la imagen */
+}
+
+/* Nueva clase para el contenedor del texto del indicador */
+.indicador-text {
+    font-weight: 500; /* El texto sí tiene un peso ligeramente mayor */
+}
