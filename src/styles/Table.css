@@ -1,119 +1,122 @@
 /* src/styles/Table.css */
-.table-container {
-    background: white;
-    padding: 1rem;
+/* ... (Estilos de .page-container, .page-header, .table-wrapper, .styled-table se mantienen igual) ... */
+
+.page-container {
+  padding: 2rem;
+}
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+.page-header h1 { margin: 0; }
+.table-wrapper {
+    background: var(--surface-color);
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
-    overflow-x: auto;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
 }
-
 .styled-table {
     width: 100%;
     border-collapse: collapse;
+    font-size: 0.9rem;
 }
-
 .styled-table thead tr {
-    background-color: var(--primary-color);
-    color: white;
+    background-color: #F8F9FA;
+    color: var(--secondary-color);
     text-align: left;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
 }
-
-.styled-table th, .styled-table td {
-    padding: 12px 15px;
-}
-
+.styled-table th, .styled-table td { padding: 1rem 1.5rem; }
 .styled-table tbody tr {
     border-bottom: 1px solid var(--border-color);
+    transition: var(--transition-fast);
 }
+.styled-table tbody tr:hover { background-color: #f7faff; }
+.styled-table tbody tr:last-of-type { border-bottom: none; }
+.action-buttons { display: flex; gap: 0.5rem; align-items: center; }
+.action-buttons .btn { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
 
-.styled-table tbody tr:nth-of-type(even) {
-    background-color: #f3f3ff;
-}
-
-.styled-table tbody tr:last-of-type {
-    border-bottom: 2px solid var(--primary-color);
-}
-
-.action-buttons a, .action-buttons button {
-    margin-right: 8px;
-    padding: 6px 10px;
-}
-
-.btn-secondary {
-    background-color: var(--secondary-color);
-    color: white;
-}
-.btn-danger {
-    background-color: var(--danger-color);
-    color: white;
-}
 
 /* --- Estilos para la Vista Detallada de la Rúbrica --- */
 .rubrica-view-container {
-    background: white;
-    padding: 2rem;
+    background: var(--surface-color);
+    padding: 2.5rem;
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
+    border: 1px solid var(--border-color);
 }
-
 .rubrica-header {
     margin-bottom: 2rem;
     border-bottom: 2px solid var(--primary-color);
     padding-bottom: 1rem;
 }
-
 .visual-rubrica-table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 1.5rem;
-    table-layout: fixed;
+    table-layout: auto; /* Dejamos que la tabla ajuste el ancho */
 }
-
 .visual-rubrica-table th,
 .visual-rubrica-table td {
     border: 1px solid #ccc;
     padding: 12px;
     text-align: left;
-    vertical-align: top;
+    line-height: 1.5; /* Mejora la legibilidad */
 }
 
+/* ======================================================= */
+/* ========= ESTILOS NUEVOS Y ACTUALIZADOS ============= */
+/* ======================================================= */
+
 .visual-rubrica-table thead th {
-    background-color: #f2f2f2;
-    font-weight: bold;
-    color: var(--dark-color);
+    background-color: #e9ecef; /* Un gris ligeramente más oscuro */
+    font-weight: 600;
+    color: var(--secondary-color);
     vertical-align: middle;
     text-align: center;
+}
+
+/* Estilos para la cabecera secundaria */
+.visual-rubrica-table .sub-header-num,
+.visual-rubrica-table .sub-header-ind,
+.visual-rubrica-table .sub-header-nivel {
+    background-color: #f8f9fa; /* Un gris más claro */
+    font-weight: 600;
 }
 
 .visual-rubrica-table .criterio-cell-vertical {
     width: 20%;
-    font-weight: bold;
+    font-weight: 500;
     background-color: #f8f9fa;
     vertical-align: middle;
-    text-align: center;
+    text-align: left;
 }
 
-/* --- MODIFICACIONES Y NUEVAS CLASES PARA LA ALINEACIÓN DEL INDICADOR --- */
+/* Estilo para la CELDA del NÚMERO */
+.indicador-number-cell {
+    width: 50px; /* Ancho fijo y estrecho */
+    text-align: center; /* Centrado horizontal */
+    vertical-align: middle; /* Centrado vertical */
+    background-color: #f8f9fa;
+    font-weight: 500;
+    border-right: 1px solid #ccc !important; /* Línea divisoria */
+}
 
-.visual-rubrica-table .indicador-cell-visual {
+/* Estilo para la CELDA del TEXTO del indicador */
+.indicador-text-cell {
     width: 25%;
-    /* Convertimos la celda en un contenedor flex para alinear sus hijos */
-    display: flex;
-    /* Alineamos los hijos al inicio (arriba) */
-    align-items: flex-start;
-    /* Añadimos un pequeño espacio entre el número y el texto */
-    gap: 10px;
+    vertical-align: top;
+    font-weight: 500;
 }
 
-/* Nueva clase para el contenedor del número */
-.indicador-number {
-    /* Le damos un ancho mínimo para que los números se alineen */
-    min-width: 15px;
-    text-align: right;
-    font-weight: normal; /* El número no está en negrita en la imagen */
-}
-
-/* Nueva clase para el contenedor del texto del indicador */
-.indicador-text {
-    font-weight: 500; /* El texto sí tiene un peso ligeramente mayor */
+/* Estilo para las CELDAS de los descriptores */
+.descriptor-cell {
+    vertical-align: top;
+    font-size: 0.9em;
 }

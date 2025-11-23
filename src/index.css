@@ -1,42 +1,77 @@
 /* src/index.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 :root {
-  --primary-color: #007bff;
-  --secondary-color: #6c757d;
-  --success-color: #28a745;
-  --danger-color: #dc3545;
-  --light-color: #f8f9fa;
-  --dark-color: #343a40;
-  --background-color: #ffffff;
-  --text-color: #212529;
-  --border-color: #dee2e6;
-  --border-radius: 0.25rem;
-  --box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  /* Paleta de Colores Profesional - ACTUALIZADA CON LOS COLORES DE LA UPCHiapas */
+  --primary-color: #009688;       /* << CAMBIADO >> Verde Turquesa Institucional */
+  --primary-hover: #00796B;       /* << CAMBIADO >> Un tono más oscuro para el hover */
+  --secondary-color: #4A5568;    /* Gris oscuro para texto (se mantiene) */
+  --accent-color: #009688;       /* << CAMBIADO >> El acento ahora es el mismo color primario */
+  --background-color: #F7FAFC; /* Gris muy claro para el fondo (se mantiene) */
+  --surface-color: #FFFFFF;     /* Blanco para tarjetas y superficies (se mantiene) */
+  --border-color: #E2E8F0;      /* Gris claro para bordes (se mantiene) */
+  --success-color: #38A169;     /* Verde */
+  --danger-color: #E53E3E;      /* Rojo */
+  --warning-color: #D69E2E;     /* Amarillo/Ocre */
+
+  /* Tipografía (se mantiene) */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  /* Estilos de Superficie (se mantienen) */
+  --border-radius: 8px;
+  --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --box-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  
+  /* Transiciones (se mantienen) */
+  --transition-fast: all 0.2s ease-in-out;
+  --transition-normal: all 0.3s ease-in-out;
+}
+
+/* ... (El resto del archivo se mantiene igual) ... */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-family);
+  background-color: var(--background-color);
+  color: var(--secondary-color);
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--light-color);
-  color: var(--text-color);
 }
 
-.container {
-  max-width: 1200px;
-  margin: 2rem auto;
-  padding: 0 1rem;
+h1, h2, h3, h4, h5, h6 {
+  color: #1A202C; /* << CAMBIADO >> Un negro ligeramente más suave para los títulos */
+  margin-bottom: 0.75rem;
+  font-weight: 600;
 }
 
-/* Estilos para que el footer se quede abajo */
-#root {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
+a {
+  color: var(--primary-color); /* Ahora usará el nuevo color turquesa */
+  text-decoration: none;
+  transition: var(--transition-fast);
 }
 
-main {
-  flex: 1;
+a:hover {
+  color: var(--primary-hover);
+}
+
+/* Scrollbar estilizada (se mantiene) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--background-color);
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
 }

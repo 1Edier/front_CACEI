@@ -1,9 +1,9 @@
-// src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import PrivateRoute from './components/PrivateRoute';
+import { useAuth } from './hooks/useAuth'; // Importar el hook
 
 // Importa todas las páginas
 import HomePage from './pages/HomePage';
@@ -15,10 +15,19 @@ import ResultadoFormPage from './pages/ResultadoFormPage';
 import ResultadoHistoryPage from './pages/ResultadoHistoryPage';
 import ResultadoDetailPage from './pages/ResultadoDetailPage';
 import EncuestaCreatePage from './pages/EncuestaCreatePage';
-import EncuestaListPage from './pages/EncuestaListPage'; // Importar el componente real
+import EncuestaListPage from './pages/EncuestaListPage';
 
-// Placeholders para páginas que aún no hemos hecho
-const ProfilePage = () => <h1>Mi Perfil</h1>;
+const ProfilePage = () => {
+    const { user } = useAuth(); // Ahora podemos usar el hook
+    return (
+        <div>
+            <h1>Mi Perfil</h1>
+            <pre>{JSON.stringify(user, null, 2)}</pre>
+        </div>
+    );
+};
+const UsuariosPage = () => <h1>Gestionar Usuarios (Admin)</h1>;
+
 
 function App() {
     return (
@@ -34,6 +43,7 @@ function App() {
                         <Route element={<PrivateRoute />}>
                             <Route path="/" element={<HomePage />} />
                             <Route path="/profile" element={<ProfilePage />} />
+                            <Route path="/usuarios" element={<UsuariosPage />} />
                             
                             {/* Rutas de Rúbricas (Resultados de Aprendizaje) */}
                             <Route path="/resultados" element={<ResultadosListPage />} />
@@ -46,7 +56,6 @@ function App() {
                             <Route path="/encuestas" element={<EncuestaListPage />} />
                             <Route path="/encuestas/create" element={<EncuestaCreatePage />} />
                             <Route path="/encuestas/:id" element={<EncuestaResponderPage />} />
-                            
                         </Route>
 
                         {/* Ruta para página no encontrada */}

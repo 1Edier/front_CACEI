@@ -1,0 +1,61 @@
+/* src/styles/LoginPage.css */
+.login-page-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #EBF2F9;
+}
+
+.login-wrapper {
+  display: flex;
+  width: 100%;
+  max-width: 900px;
+  background: var(--surface-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow-lg);
+  overflow: hidden;
+}
+
+.login-promo-panel {
+  flex: 1;
+  /* << CAMBIADO >> Nuevo gradiente con la paleta de colores institucional */
+  background: linear-gradient(135deg, #009688 0%, #00796B 100%); 
+  color: white;
+  padding: 3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.login-promo-panel .logo {
+  max-width: 2300px; /* << AJUSTADO >> Un tamaño más refinado para el logo */
+  margin-bottom: 2rem;
+  /* La línea del filter ya fue eliminada, lo cual es correcto */
+}
+
+.login-promo-panel h1 {
+  color: white;
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+}
+
+.login-promo-panel p {
+  opacity: 0.9;
+}
+
+.login-form-panel {
+  flex: 1;
+  padding: 3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.login-form-panel .form-title {
+  font-size: 2rem;
+  text-align: left;
+  color: #1A202C;
+}

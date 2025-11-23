@@ -1,0 +1,122 @@
+/* src/styles/Sidebar.css */
+.sidebar {
+  width: 260px;
+  background-color: var(--primary-color); /* Se actualizará al turquesa automáticamente */
+  color: rgba(255, 255, 255, 0.75); /* << CAMBIADO >> Texto blanco semi-transparente para mejor legibilidad */
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  transition: width 0.3s ease;
+}
+
+.sidebar-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: center; /* Centramos el logo en el header */
+}
+
+.sidebar-logo {
+  height: 50px; /* Un poco más grande para darle presencia */
+  /* El logo ya no necesita ser blanco si tiene su propio color */
+}
+
+.sidebar-nav {
+  flex-grow: 1;
+  padding: 1rem 0;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1.5rem;
+  margin: 0.25rem 1rem;
+  border-radius: var(--border-radius);
+  color: rgba(255, 255, 255, 0.8); /* << CAMBIADO >> Texto de los links más legible */
+  text-decoration: none;
+  font-weight: 500;
+  transition: var(--transition-fast);
+}
+
+.sidebar-link:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.sidebar-link.active {
+  background-color: white; /* << CAMBIADO >> El link activo ahora será blanco */
+  color: var(--primary-color); /* << CAMBIADO >> Y el texto turquesa, creando un contraste invertido muy elegante */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-link svg {
+  font-size: 1.2rem;
+}
+
+.sidebar-footer {
+  padding: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ... (El resto del archivo se mantiene igual) ... */
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.user-role {
+  font-size: 0.8rem;
+  text-transform: capitalize;
+  opacity: 0.8;
+}
+
+.logout-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  padding: 0.75rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 1rem;
+  font-family: var(--font-family);
+  font-weight: 500;
+  transition: var(--transition-fast);
+}
+
+.logout-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+}

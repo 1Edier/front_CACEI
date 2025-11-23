@@ -1,7 +1,8 @@
-// src/pages/ResultadoDetailPage.js
+// src/pages/ResultadoDetailPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getResultadoById } from '../api/apiService';
+import { FiArrowLeft } from 'react-icons/fi';
 import '../styles/Table.css';
 
 const ResultadoDetailPage = () => {
@@ -33,54 +34,69 @@ const ResultadoDetailPage = () => {
     const { niveles, criterios } = estructura;
 
     return (
-        <div>
-            <Link to="/resultados" className="btn btn-secondary" style={{ marginBottom: '1rem' }}>
-                &larr; Volver a la lista
+        <div className="page-container">
+            <Link to="/resultados" className="btn btn-secondary" style={{ marginBottom: '2rem' }}>
+                <FiArrowLeft /> Volver a la lista
             </Link>
             <div className="rubrica-view-container">
                 <div className="rubrica-header">
                     <h1>{codigo}: {descripcion}</h1>
                 </div>
 
-                <table className="visual-rubrica-table">
-                    <thead>
-                        <tr>
-                            <th>Criterio de desempeño</th>
-                            <th>Indicador de desempeño</th>
-                            {niveles.map(nivel => (
-                                <th key={nivel}>{nivel}</th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {criterios.map((criterio) => (
-                            criterio.indicadores.map((indicador, indicadorIndex) => (
-                                <tr key={`${criterio.orden}-${indicador.orden}`}>
-                                    {indicadorIndex === 0 && (
-                                        <td
-                                            rowSpan={criterio.indicadores.length}
-                                            className="criterio-cell-vertical"
-                                        >
-                                            {criterio.nombre}
+                <div className="table-wrapper">
+                    <table className="visual-rubrica-table">
+                        <thead>
+                            <tr>
+                                <th rowSpan="2">Criterio de Desempeño</th>
+                                {/* ==== CAMBIO 1: La cabecera ahora abarca 2 columnas ==== */}
+                                <th colSpan="2">Indicador de Desempeño</th> 
+                                {/* ==== CAMBIO 2: La cabecera "Descriptor" abarca los 5 niveles ==== */}
+                                <th colSpan={niveles.length}>Descriptor</th>
+                            </tr>
+                            <tr>
+                                {/* ==== CAMBIO 3: Fila de cabecera secundaria para los niveles ==== */}
+                                <th className="sub-header-num">#</th>
+                                <th className="sub-header-ind">Indicador</th>
+                                {niveles.map(nivel => (
+                                    <th key={nivel} className="sub-header-nivel">{nivel}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {criterios.map((criterio) => (
+                                criterio.indicadores.map((indicador, indicadorIndex) => (
+                                    <tr key={`${criterio.orden}-${indicador.orden}`}>
+                                        {indicadorIndex === 0 && (
+                                            <td
+                                                rowSpan={criterio.indicadores.length}
+                                                className="criterio-cell-vertical"
+                                            >
+                                                {criterio.nombre}
+                                            </td>
+                                        )}
+                                        
+                                        {/* ======================================================= */}
+                                        {/* ==== CAMBIO 4: Celda dividida en dos <td> separadas ==== */}
+                                        {/* ======================================================= */}
+                                        <td className="indicador-number-cell">
+                                            {indicador.orden || indicadorIndex + 1}
                                         </td>
-                                    )}
-                                    {/* --- LÍNEA MODIFICADA --- */}
-                                    {/* Se añade el número del indicador antes del nombre */}
-                                    <td className="indicador-cell-visual">
-                                        {indicador.orden || indicadorIndex + 1}. {indicador.nombre}
-                                    </td>
-                                    
-                                    {niveles.map(nivel => {
-                                        const nivelKey = nivel.toLowerCase().replace(/ /g, '_');
-                                        return (
-                                            <td key={nivelKey}>{indicador.descriptores[nivelKey] || ''}</td>
-                                        );
-                                    })}
-                                </tr>
-                            ))
-                        ))}
-                    </tbody>
-                </table>
+                                        <td className="indicador-text-cell">
+                                            {indicador.nombre}
+                                        </td>
+                                        
+                                        {niveles.map(nivel => {
+                                            const nivelKey = nivel.toLowerCase().replace(/ /g, '_');
+                                            return (
+                                                <td key={nivelKey} className="descriptor-cell">{indicador.descriptores[nivelKey] || ''}</td>
+                                            );
+                                        })}
+                                    </tr>
+                                ))
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

@@ -1,17 +1,22 @@
 import React from 'react';
-import Navbar from './Navbar';
+import Sidebar from './Sidebar';
+import { useAuth } from '../hooks/useAuth';
 
 const Layout = ({ children }) => {
+    const { isAuthenticated } = useAuth();
+
+    if (!isAuthenticated) {
+        // Para rutas públicas como Login, no mostramos el layout principal
+        return <main>{children}</main>;
+    }
+
     return (
-        <>
-            <Navbar />
-            <main>
-                <div className="container">
-                    {children}
-                </div>
+        <div style={{ display: 'flex', minHeight: '100vh' }}>
+            <Sidebar />
+            <main style={{ flex: 1, padding: '2rem', backgroundColor: '#F7FAFC' }}>
+                {children}
             </main>
-            {/* Puedes agregar un footer aquí si lo deseas */}
-        </>
+        </div>
     );
 };
 
