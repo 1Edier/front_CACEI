@@ -16,6 +16,8 @@ import ResultadoHistoryPage from './pages/ResultadoHistoryPage';
 import ResultadoDetailPage from './pages/ResultadoDetailPage';
 import EncuestaCreatePage from './pages/EncuestaCreatePage';
 import EncuestaListPage from './pages/EncuestaListPage';
+import EncuestaResultadosPage from './pages/EncuestaResultadosPage';
+import GraciasPage from './pages/GraciasPage'; // Importar la página de agradecimiento
 
 const ProfilePage = () => {
     const { user } = useAuth(); // Ahora podemos usar el hook
@@ -55,8 +57,13 @@ function App() {
                             {/* Encuestas */}
                             <Route path="/encuestas" element={<EncuestaListPage />} />
                             <Route path="/encuestas/create" element={<EncuestaCreatePage />} />
-                            <Route path="/encuestas/:id" element={<EncuestaResponderPage />} />
+                            {/* <Route path="/encuestas/:id/responder" element={<EncuestaResponderPage />} />  Esta ruta se mueve a pública */}
+                            <Route path="/encuestas/:id/resultados" element={<EncuestaResultadosPage />} />
                         </Route>
+
+                        {/* Rutas Públicas (Encuestas Externas) */}
+                        <Route path="/encuestas/responder/:pin" element={<EncuestaResponderPage />} />
+                        <Route path="/gracias" element={<GraciasPage />} /> {/* Usar el componente GraciasPage */}
 
                         {/* Ruta para página no encontrada */}
                         <Route path="*" element={<h1>404: Página No Encontrada</h1>} />
