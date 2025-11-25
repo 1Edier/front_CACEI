@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // La URL base de tu backend. Asegúrate de que coincida con el puerto de tu backend.
-const API_URL = 'http://localhost:3000/api/v1';
+const API_URL = ' https://fc332aef8139.ngrok-free.app/api/v1';
 
 // Instancia para peticiones con autenticación
 const api = axios.create({
