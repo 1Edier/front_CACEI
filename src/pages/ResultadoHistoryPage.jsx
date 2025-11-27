@@ -1,8 +1,9 @@
-// src/pages/ResultadoHistoryPage.js
-import React, {useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getResultadoHistory } from '../api/apiService';
+import { FiArrowLeft, FiUser, FiCalendar, FiPlus, FiEdit3, FiTrash2, FiClock } from 'react-icons/fi';
 import '../styles/Table.css';
+import '../styles/ResultadoHistoryPage.css';
 
 const ResultadoHistoryPage = () => {
     const { id } = useParams();
@@ -15,14 +16,13 @@ const ResultadoHistoryPage = () => {
         const fetchHistory = async () => {
             try {
                 const { data } = await getResultadoHistory(id);
-                setHistory(data);
-                // Por defecto, seleccionamos la versión más reciente para mostrarla
-                if (data.length > 0) {
-                    setSelectedVersion(data[0]);
+                const sortedHistory = data.sort((a, b) => b.version - a.version);
+                setHistory(sortedHistory);
+                if (sortedHistory.length > 0) {
+                    setSelectedVersion(sortedHistory[0]);
                 }
             } catch (err) {
                 setError('No se pudo cargar el historial.');
-                console.error(err);
             } finally {
                 setLoading(false);
             }
@@ -30,12 +30,12 @@ const ResultadoHistoryPage = () => {
         fetchHistory();
     }, [id]);
 
-    const getActionColor = (action) => {
+    const getActionInfo = (action) => {
         switch (action) {
-            case 'INSERT': return 'green';
-            case 'UPDATE': return '#fd7e14'; // Naranja
-            case 'DELETE': return 'red';
-            default: return 'black';
+            case 'INSERT': return { color: 'var(--success-color)', icon: <FiPlus />, text: 'Creación' };
+            case 'UPDATE': return { color: 'var(--warning-color)', icon: <FiEdit3 />, text: 'Actualización' };
+            case 'DELETE': return { color: 'var(--danger-color)', icon: <FiTrash2 />, text: 'Eliminación' };
+            default: return { color: 'var(--secondary-color)', icon: <FiClock />, text: action };
         }
     };
 
@@ -43,76 +43,89 @@ const ResultadoHistoryPage = () => {
     if (error) return <p className="error-message">{error}</p>;
 
     return (
-        <div>
-            <Link to="/resultados" className="btn btn-secondary" style={{ marginBottom: '1rem' }}>
-                &larr; Volver a la lista
+        <div className="page-container">
+            <Link to="/resultados" className="btn btn-secondary" style={{ marginBottom: '2rem' }}>
+                <FiArrowLeft /> Volver a la lista
             </Link>
-            <h1>Historial de Cambios</h1>
+            
+            <div className="page-header">
+                <h1>Historial de Cambios</h1>
+            </div>
 
             <div className="history-container">
-                {/* --- Columna Izquierda: Lista de Versiones --- */}
+                {/* --- SECCIÓN SUPERIOR: Tarjetas de Versiones --- */}
                 <div className="version-list">
-                    {history.length > 0 ? history.map(entry => (
-                        <div
-                            key={entry.id}
-                            className={`version-item ${selectedVersion?.id === entry.id ? 'active' : ''}`}
-                            onClick={() => setSelectedVersion(entry)}
-                        >
-                            <h4>Versión {entry.version}</h4>
-                            <span className="version-meta">
-                                Por: {entry.usuario_nombre || 'N/A'}
-                            </span>
-                            <span className="version-meta">
-                                Fecha: {new Date(entry.fecha_cambio).toLocaleString()}
-                            </span>
-                            <span className="version-action" style={{ color: selectedVersion?.id === entry.id ? 'white' : getActionColor(entry.accion) }}>
-                                Acción: {entry.accion}
-                            </span>
-                        </div>
-                    )) : <p>No hay historial para esta rúbrica.</p>}
+                    {history.length > 0 ? history.map(entry => {
+                        const actionInfo = getActionInfo(entry.accion);
+                        return (
+                            <div
+                                key={entry.id}
+                                className={`version-item ${selectedVersion?.id === entry.id ? 'active' : ''}`}
+                                onClick={() => setSelectedVersion(entry)}
+                            >
+                                <div className="version-header">
+                                    <h4>Versión {entry.version}</h4>
+                                    <div className="version-action" style={{ color: selectedVersion?.id === entry.id ? 'white' : actionInfo.color }}>
+                                        {actionInfo.icon}
+                                        <span>{actionInfo.text}</span>
+                                    </div>
+                                </div>
+                                <div className="version-meta">
+                                    <FiUser />
+                                    <span>{entry.usuario_nombre || 'N/A'}</span>
+                                </div>
+                                <div className="version-meta">
+                                    <FiCalendar />
+                                    <span>{new Date(entry.fecha_cambio).toLocaleString()}</span>
+                                </div>
+                            </div>
+                        )
+                    }) : <p style={{ padding: '1rem' }}>No hay historial para esta rúbrica.</p>}
                 </div>
 
-                {/* --- Columna Derecha: Detalles de la Versión Seleccionada --- */}
+                {/* --- SECCIÓN INFERIOR: Tabla de Detalles --- */}
                 <div className="version-details">
                     {selectedVersion ? (
                         <div className="rubrica-view-container">
                             <div className="rubrica-header">
                                 <h2>{selectedVersion.codigo}: {selectedVersion.descripcion}</h2>
-                                <p>Mostrando detalles de la <strong>Versión {selectedVersion.version}</strong></p>
+                                <p style={{ marginTop: '0.5rem', color: 'var(--secondary-color)' }}>
+                                    Visualizando datos de la <strong>Versión {selectedVersion.version}</strong> guardada el {new Date(selectedVersion.fecha_cambio).toLocaleDateString()}.
+                                </p>
                             </div>
-                            <table className="visual-rubrica-table">
-                                <thead>
-                                    <tr>
-                                        <th>Criterio de desempeño</th>
-                                        <th>Indicador de desempeño</th>
-                                        {selectedVersion.estructura.niveles.map(nivel => (
-                                            <th key={nivel}>{nivel}</th>
+                            <div className="table-wrapper">
+                                <table className="visual-rubrica-table">
+                                    <thead>
+                                        <tr>
+                                            <th rowSpan="2">Criterio de Desempeño</th>
+                                            <th colSpan="2">Indicador de Desempeño</th>
+                                            <th colSpan={selectedVersion.estructura.niveles.length}>Descriptor</th>
+                                        </tr>
+                                        <tr>
+                                            <th className="sub-header-num">#</th>
+                                            <th className="sub-header-ind">Indicador</th>
+                                            {selectedVersion.estructura.niveles.map(nivel => (
+                                                <th key={nivel} className="sub-header-nivel">{nivel}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {selectedVersion.estructura.criterios.map((criterio) => (
+                                            criterio.indicadores.map((indicador, indicadorIndex) => (
+                                                <tr key={`${criterio.orden}-${indicador.orden}`}>
+                                                    {indicadorIndex === 0 && <td rowSpan={criterio.indicadores.length} className="criterio-cell-vertical">{criterio.nombre}</td>}
+                                                    <td className="indicador-number-cell">{indicador.orden || indicadorIndex + 1}</td>
+                                                    <td className="indicador-text-cell">{indicador.nombre}</td>
+                                                    {selectedVersion.estructura.niveles.map(nivel => {
+                                                        const nivelKey = nivel.toLowerCase().replace(/ /g, '_');
+                                                        return <td key={nivelKey} className="descriptor-cell">{indicador.descriptores[nivelKey] || ''}</td>;
+                                                    })}
+                                                </tr>
+                                            ))
                                         ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {selectedVersion.estructura.criterios.map((criterio) => (
-                                        criterio.indicadores.map((indicador, indicadorIndex) => (
-                                            <tr key={`${criterio.orden}-${indicador.orden}`}>
-                                                {indicadorIndex === 0 && (
-                                                    <td rowSpan={criterio.indicadores.length} className="criterio-cell-vertical">
-                                                        {criterio.nombre}
-                                                    </td>
-                                                )}
-                                                <td className="indicador-cell-visual">
-                                                    {indicador.orden || indicadorIndex + 1}. {indicador.nombre}
-                                                </td>
-                                                {selectedVersion.estructura.niveles.map(nivel => {
-                                                    const nivelKey = nivel.toLowerCase().replace(/ /g, '_');
-                                                    return (
-                                                        <td key={nivelKey}>{indicador.descriptores[nivelKey] || ''}</td>
-                                                    );
-                                                })}
-                                            </tr>
-                                        ))
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     ) : (
                         <div className="rubrica-view-container">
