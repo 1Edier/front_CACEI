@@ -57,7 +57,9 @@ export const getEncuestaResultados = (id) => api.get(`/encuestas/${id}/resultado
 // --- Encuestas Externas / Invitaciones ---
 export const createEncuestaInvitacion = (id_encuesta, data) => api.post(`/encuestas/${id_encuesta}/invitaciones`, data);
 export const validateEncuestaInvitacion = (pin) => publicApi.get(`/encuestas/invitaciones/${pin}`); // Usar publicApi
-export const submitRespuestaExterna = (data) => publicApi.post('/encuestas/respuestas/externas', data); // Usar publicApi
+
+// Nueva función para enviar una encuesta externa completa
+export const submitFullEncuestaExterna = (data) => publicApi.post('/encuestas/respuestas/externas/completa', data); // Usar publicApi
 
 // --- Usuarios (Admin) ---
 export const getAllUsuarios = () => api.get('/usuarios');

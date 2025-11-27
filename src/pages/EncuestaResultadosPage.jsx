@@ -1,38 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getFullEncuesta, getEncuestaResultados } from '../api/apiService'; // Eliminado getAllNivelesDesempeno
-import { FiArrowLeft } from 'react-icons/fi';
+import { getFullEncuesta, getEncuestaResultados } from '../api/apiService';
+import { FiArrowLeft, FiPieChart, FiBarChart2 } from 'react-icons/fi';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import '../styles/Table.css';
-import '../styles/Encuesta.css'; // Reutilizamos algunos estilos de encuesta
+import '../styles/Encuesta.css';
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 const EncuestaResultadosPage = () => {
     const { id } = useParams();
     const [encuesta, setEncuesta] = useState(null);
     const [resultados, setResultados] = useState([]);
-    // const [nivelesDesempenoMap, setNivelesDesempenoMap] = useState({}); // Eliminado: los niveles ahora vienen por nombre
+    const [invitaciones, setInvitaciones] = useState([]); // Nuevo estado para invitaciones
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [vistaActual, setVistaActual] = useState('graficas'); // 'graficas' o 'tabla'
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [encuestaRes, resultadosRes] = await Promise.all([ // Ya no se carga getAllNivelesDesempeno
+                const [encuestaRes, resultadosData] = await Promise.all([
                     getFullEncuesta(id),
                     getEncuestaResultados(id),
                 ]);
 
                 setEncuesta(encuestaRes.data);
-                setResultados(resultadosRes.data);
-
-                // Crear un mapa de niveles de desempeño para fácil acceso (ya no es necesario si el backend envía el nombre)
-                // const nivelesMap = nivelesRes.data.reduce((acc, nivel) => {
-                //     acc[nivel.id] = nivel;
-                //     return acc;
-                // }, {});
-                // setNivelesDesempenoMap(nivelesMap);
+                setResultados(resultadosData.data.resultados); // Acceder a la propiedad 'resultados'
+                setInvitaciones(resultadosData.data.invitaciones); // Acceder a la propiedad 'invitaciones'
                 
             } catch (err) {
-                setError('Error al cargar los resultados de la encuesta.'); // Mensaje de error actualizado
+                setError('Error al cargar los resultados de la encuesta.');
                 console.error(err);
             } finally {
                 setLoading(false);
@@ -57,86 +55,384 @@ const EncuestaResultadosPage = () => {
         return acc;
     }, {});
 
-    // Agrupar preguntas de la encuesta por indicador para el renderizado
-    const preguntasAgrupadas = encuesta.preguntas.reduce((acc, pregunta) => {
-        const key = `${pregunta.id_resultado_aprendizaje}-${pregunta.criterio_path}-${pregunta.indicador_path}`;
-        if (!acc[key]) {
-            acc[key] = {
-                resultado_codigo: pregunta.resultado_codigo,
-                criterio_nombre: pregunta.criterio_nombre,
-                indicador_nombre: pregunta.indicador_nombre,
-                descriptores: pregunta.descriptores,
-                niveles: pregunta.niveles,
-                preguntas: []
-            };
-        }
-        acc[key].preguntas.push(pregunta);
-        return acc;
-    }, {});
+    // Calcular estadísticas generales
+    const calcularEstadisticas = () => {
+        const stats = {
+            totalRespuestas: resultados.length,
+            preguntasRespondidas: Object.keys(groupedResults).length,
+            totalPreguntas: encuesta.preguntas.length,
+            lugares: {},
+            tiposEmpresa: {},
+            giros: {}
+        };
+
+        resultados.forEach(r => {
+            if (r.lugar) stats.lugares[r.lugar] = (stats.lugares[r.lugar] || 0) + 1;
+            if (r.tipo_empresa) stats.tiposEmpresa[r.tipo_empresa] = (stats.tiposEmpresa[r.tipo_empresa] || 0) + 1;
+            if (r.giro) stats.giros[r.giro] = (stats.giros[r.giro] || 0) + 1;
+        });
+
+        return stats;
+    };
+
+    const estadisticas = calcularEstadisticas();
+
+    // Preparar datos para gráficas de distribución
+    const prepararDatosLugares = () => {
+        return Object.entries(estadisticas.lugares).map(([nombre, cantidad]) => ({
+            nombre,
+            cantidad
+        }));
+    };
+
+    const prepararDatosTiposEmpresa = () => {
+        return Object.entries(estadisticas.tiposEmpresa).map(([nombre, cantidad]) => ({
+            nombre,
+            cantidad
+        }));
+    };
+
+    const prepararDatosNiveles = (pregunta) => {
+        const preguntaResults = groupedResults[pregunta.id] || { respuestas: [] };
+        const conteoNiveles = {};
+        
+        preguntaResults.respuestas.forEach(r => {
+            const nivel = r.nombre_nivel_seleccionado || 'Sin nivel';
+            conteoNiveles[nivel] = (conteoNiveles[nivel] || 0) + 1;
+        });
+
+        return Object.entries(conteoNiveles).map(([nivel, cantidad]) => ({
+            nivel,
+            cantidad
+        }));
+    };
 
     return (
         <div className="page-container">
             <Link to="/encuestas" className="btn btn-secondary" style={{ marginBottom: '2rem' }}>
                 <FiArrowLeft /> Volver a la lista de encuestas
             </Link>
+            
             <div className="encuesta-resultados-container">
                 <div className="encuesta-header">
                     <h1>Resultados de Encuesta: {encuesta.nombre}</h1>
                     <p>{encuesta.descripcion}</p>
+                    {encuesta.para_externos && invitaciones.length > 0 && (
+                        <div style={{ 
+                            marginTop: '1.5rem', 
+                            padding: '1rem', 
+                            background: '#e0f7fa', 
+                            borderRadius: '8px', 
+                            border: '1px solid #b2ebf2' 
+                        }}>
+                            <h3 style={{ margin: '0 0 1rem 0', color: '#00796b' }}>
+                                Enlace(s) para responder la encuesta:
+                            </h3>
+                            {invitaciones.map((inv, index) => (
+                                <p key={inv.id} style={{ marginBottom: '0.5rem', wordBreak: 'break-all' }}>
+                                    <strong style={{ color: '#004d40' }}>PIN {index + 1}:</strong>{' '}
+                                    <a 
+                                        href={`${window.location.origin}/encuestas/responder/${inv.pin}`} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        style={{ color: '#0288d1', textDecoration: 'underline' }}
+                                    >
+                                        {window.location.origin}/encuestas/responder/{inv.pin}
+                                    </a>
+                                </p>
+                            ))}
+                            <p style={{marginTop: '1rem', fontSize: '0.9em', color: '#00796b'}}>
+                                Comparte estos enlaces con los encuestados externos.
+                            </p>
+                        </div>
+                    )}
                 </div>
 
-                <h2>Preguntas y Respuestas</h2>
-
-                {encuesta.preguntas.length === 0 ? (
-                    <p>No hay preguntas en esta encuesta para mostrar resultados.</p>
-                ) : (
-                    <div className="resultados-preguntas-list">
-                        {encuesta.preguntas.map(pregunta => {
-                            const preguntaResults = groupedResults[pregunta.id] || { respuestas: [] };
-                            
-                            return (
-                                <div key={pregunta.id} className="pregunta-resultados-item" style={{ marginBottom: '2rem', paddingBottom: '1rem', borderBottom: '1px solid #eee' }}>
-                                    <h4>Pregunta: {pregunta.texto}</h4>
-                                    
-                                    {preguntaResults.respuestas.length > 0 ? (
-                                        <div className="respuestas-individuales">
-                                            <h5>Respuestas Individuales:</h5>
-                                            <table className="table">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Encuestado</th>
-                                                        <th>Nivel Seleccionado</th>
-                                                        <th>Comentario</th>
-                                                        <th>Lugar</th>
-                                                        <th>Tipo Empresa</th>
-                                                        <th>Giro</th>
-                                                        <th>Egresados Uni</th>
-                                                        <th>Fecha</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {preguntaResults.respuestas.map((r, idx) => (
-                                                        <tr key={idx}>
-                                                            <td>{r.usuario_nombre || r.usuario || r.invitacion_pin ? `Invitado (${r.invitacion_pin})` : 'Anónimo'}</td>
-                                                            <td>{r.nombre_nivel_seleccionado}</td>
-                                                            <td>{r.comentario || '-'}</td>
-                                                            <td>{r.lugar || '-'}</td>
-                                                            <td>{r.tipo_empresa || '-'}</td>
-                                                            <td>{r.giro || '-'}</td>
-                                                            <td>{r.egresados_universidad || '-'}</td>
-                                                            <td>{new Date(r.fecha_respuesta).toLocaleDateString()}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    ) : (
-                                        <p>No hay respuestas aún para esta pregunta.</p>
-                                    )}
-                                </div>
-                            );
-                        })}
+                {/* Resumen Estadístico */}
+                <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                    gap: '1rem', 
+                    marginBottom: '2rem',
+                    marginTop: '2rem' /* Añadido un margen superior para separar del bloque de enlaces */
+                }}>
+                    <div style={{ 
+                        background: '#f8f9fa', 
+                        padding: '1.5rem', 
+                        borderRadius: '8px', 
+                        textAlign: 'center',
+                        border: '1px solid #dee2e6'
+                    }}>
+                        <h3 style={{ margin: '0 0 0.5rem 0', color: '#495057', fontSize: '1rem' }}>Total Respuestas</h3>
+                        <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0, color: '#0088FE' }}>
+                            {estadisticas.totalRespuestas}
+                        </p>
                     </div>
+                    <div style={{ 
+                        background: '#f8f9fa', 
+                        padding: '1.5rem', 
+                        borderRadius: '8px', 
+                        textAlign: 'center',
+                        border: '1px solid #dee2e6'
+                    }}>
+                        <h3 style={{ margin: '0 0 0.5rem 0', color: '#495057', fontSize: '1rem' }}>Preguntas Respondidas</h3>
+                        <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0, color: '#00C49F' }}>
+                            {estadisticas.preguntasRespondidas} / {estadisticas.totalPreguntas}
+                        </p>
+                    </div>
+                    <div style={{ 
+                        background: '#f8f9fa', 
+                        padding: '1.5rem', 
+                        borderRadius: '8px', 
+                        textAlign: 'center',
+                        border: '1px solid #dee2e6'
+                    }}>
+                        <h3 style={{ margin: '0 0 0.5rem 0', color: '#495057', fontSize: '1rem' }}>Lugares Diferentes</h3>
+                        <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0, color: '#FFBB28' }}>
+                            {Object.keys(estadisticas.lugares).length}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Botones de Vista */}
+                <div style={{ marginBottom: '2rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    <button 
+                        className={`btn ${vistaActual === 'graficas' ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setVistaActual('graficas')}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                        <FiPieChart />
+                        Vista Gráficas
+                    </button>
+                    <button 
+                        className={`btn ${vistaActual === 'tabla' ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setVistaActual('tabla')}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                        <FiBarChart2 />
+                        Vista Tabla Detallada
+                    </button>
+                </div>
+
+                {vistaActual === 'graficas' && (
+                    <>
+                        {/* Gráficas de Distribución General */}
+                        <div style={{ marginBottom: '3rem' }}>
+                            <h2>Distribución de Participantes</h2>
+                            <div style={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', 
+                                gap: '2rem',
+                                marginTop: '1.5rem'
+                            }}>
+                                {/* Gráfica de Lugares */}
+                                {prepararDatosLugares().length > 0 && (
+                                    <div style={{ 
+                                        background: 'white', 
+                                        padding: '1.5rem', 
+                                        borderRadius: '8px', 
+                                        border: '1px solid #dee2e6',
+                                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                                    }}>
+                                        <h3 style={{ textAlign: 'center', marginBottom: '1rem', color: '#495057' }}>
+                                            Por Lugar
+                                        </h3>
+                                        <ResponsiveContainer width="100%" height={300}>
+                                            <PieChart>
+                                                <Pie
+                                                    data={prepararDatosLugares()}
+                                                    dataKey="cantidad"
+                                                    nameKey="nombre"
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    outerRadius={80}
+                                                    label
+                                                >
+                                                    {prepararDatosLugares().map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                    ))}
+                                                </Pie>
+                                                <Tooltip />
+                                                <Legend />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                )}
+
+                                {/* Gráfica de Tipos de Empresa */}
+                                {prepararDatosTiposEmpresa().length > 0 && (
+                                    <div style={{ 
+                                        background: 'white', 
+                                        padding: '1.5rem', 
+                                        borderRadius: '8px', 
+                                        border: '1px solid #dee2e6',
+                                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                                    }}>
+                                        <h3 style={{ textAlign: 'center', marginBottom: '1rem', color: '#495057' }}>
+                                            Por Tipo de Empresa
+                                        </h3>
+                                        <ResponsiveContainer width="100%" height={300}>
+                                            <BarChart data={prepararDatosTiposEmpresa()}>
+                                                <CartesianGrid strokeDasharray="3 3" />
+                                                <XAxis dataKey="nombre" />
+                                                <YAxis />
+                                                <Tooltip />
+                                                <Bar dataKey="cantidad" fill="#00C49F" />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Gráficas por Pregunta */}
+                        <h2 style={{ marginBottom: '1.5rem' }}>Distribución de Respuestas por Pregunta</h2>
+                        {encuesta.preguntas.length === 0 ? (
+                            <p>No hay preguntas en esta encuesta.</p>
+                        ) : (
+                            <div style={{ display: 'grid', gap: '2rem' }}>
+                                {encuesta.preguntas.map(pregunta => {
+                                    const datosNiveles = prepararDatosNiveles(pregunta);
+                                    const preguntaResults = groupedResults[pregunta.id] || { respuestas: [] };
+                                    
+                                    return (
+                                        <div key={pregunta.id} style={{ 
+                                            background: 'white', 
+                                            padding: '1.5rem', 
+                                            borderRadius: '8px', 
+                                            border: '1px solid #dee2e6',
+                                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                                        }}>
+                                            <h4 style={{ marginBottom: '0.5rem', color: '#212529' }}>
+                                                {pregunta.texto}
+                                            </h4>
+                                            <p style={{ 
+                                                color: '#6c757d', 
+                                                fontSize: '0.9rem', 
+                                                marginBottom: '1rem',
+                                                fontStyle: 'italic'
+                                            }}>
+                                                Total de respuestas: {preguntaResults.respuestas.length}
+                                            </p>
+                                            
+                                            {datosNiveles.length > 0 ? (
+                                                <ResponsiveContainer width="100%" height={300}>
+                                                    <BarChart data={datosNiveles}>
+                                                        <CartesianGrid strokeDasharray="3 3" />
+                                                        <XAxis dataKey="nivel" />
+                                                        <YAxis allowDecimals={false} />
+                                                        <Tooltip />
+                                                        <Legend />
+                                                        <Bar 
+                                                            dataKey="cantidad" 
+                                                            fill="#8884d8" 
+                                                            name="Cantidad de respuestas"
+                                                        />
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            ) : (
+                                                <p style={{ 
+                                                    textAlign: 'center', 
+                                                    color: '#6c757d',
+                                                    padding: '2rem'
+                                                }}>
+                                                    No hay respuestas para esta pregunta aún.
+                                                </p>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {vistaActual === 'tabla' && (
+                    <>
+                        <h2>Respuestas Detalladas</h2>
+                        {encuesta.preguntas.length === 0 ? (
+                            <p>No hay preguntas en esta encuesta.</p>
+                        ) : (
+                            <div className="resultados-preguntas-list">
+                                {encuesta.preguntas.map(pregunta => {
+                                    const preguntaResults = groupedResults[pregunta.id] || { respuestas: [] };
+                                    
+                                    return (
+                                        <div key={pregunta.id} style={{ 
+                                            marginBottom: '2rem', 
+                                            background: 'white', 
+                                            padding: '1.5rem', 
+                                            borderRadius: '8px',
+                                            border: '1px solid #dee2e6',
+                                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                                        }}>
+                                            <h4 style={{ marginBottom: '1rem' }}>{pregunta.texto}</h4>
+                                            
+                                            {preguntaResults.respuestas.length > 0 ? (
+                                                <div style={{ overflowX: 'auto' }}>
+                                                    <table className="styled-table">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Encuestado</th>
+                                                                <th>Nivel</th>
+                                                                <th>Comentario</th>
+                                                                <th>Lugar</th>
+                                                                <th>Tipo Empresa</th>
+                                                                <th>Giro</th>
+                                                                <th>Egresados</th>
+                                                                <th>Fecha</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {preguntaResults.respuestas.map((r, idx) => (
+                                                                <tr key={idx}>
+                                                                    <td>
+                                                                        {r.usuario_nombre || 
+                                                                         (r.invitacion_pin ? `Invitado (${r.invitacion_pin})` : 'Anónimo')}
+                                                                    </td>
+                                                                    <td>
+                                                                        <span style={{ 
+                                                                            background: '#e7f3ff', 
+                                                                            padding: '0.25rem 0.75rem', 
+                                                                            borderRadius: '12px',
+                                                                            fontSize: '0.85rem',
+                                                                            fontWeight: '500',
+                                                                            display: 'inline-block'
+                                                                        }}>
+                                                                            {r.nombre_nivel_seleccionado || 'N/A'}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td style={{ maxWidth: '200px', wordWrap: 'break-word' }}>
+                                                                        {r.comentario || '-'}
+                                                                    </td>
+                                                                    <td>{r.lugar || '-'}</td>
+                                                                    <td>{r.tipo_empresa || '-'}</td>
+                                                                    <td>{r.giro || '-'}</td>
+                                                                    <td>{r.egresados_universidad || '-'}</td>
+                                                                    <td style={{ whiteSpace: 'nowrap' }}>
+                                                                        {new Date(r.fecha_respuesta).toLocaleDateString('es-MX')}
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            ) : (
+                                                <p style={{ 
+                                                    textAlign: 'center', 
+                                                    color: '#6c757d', 
+                                                    padding: '1rem',
+                                                    fontStyle: 'italic'
+                                                }}>
+                                                    No hay respuestas aún para esta pregunta.
+                                                </p>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>

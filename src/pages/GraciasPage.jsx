@@ -8,9 +8,7 @@ const GraciasPage = () => {
         <div className="form-container" style={{ textAlign: 'center', maxWidth: '600px', margin: '50px auto', padding: '30px', boxShadow: '0 4px 8px rgba(0,0,0,0.1)', borderRadius: '8px', backgroundColor: '#fff' }}>
             <h1>¡Gracias por responder la encuesta!</h1>
             <p>Tu participación es muy valiosa para nosotros.</p>
-            <p style={{ marginTop: '20px' }}>
-                <Link to="/" className="btn btn-primary">Volver al Inicio</Link>
-            </p>
+            
         </div>
     );
 };
