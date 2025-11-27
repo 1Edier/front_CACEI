@@ -1,49 +1,56 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createEncuesta, getAllResultados, createEncuestaInvitacion } from '../api/apiService';
-import '../styles/Form.css'; // Estilos para formularios
-import '../styles/Table.css'; // Estilos para tablas, si se usan para mostrar rúbricas
+import { motion } from 'framer-motion';
+import { FiCalendar, FiPlus, FiTrash2 } from 'react-icons/fi';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
+import '../styles/Form.css';
+import '../styles/EncuestaCreatePage.css';
+
+const MySwal = withReactContent(Swal);
+
+// FUNCIÓN DE AYUDA: Formatea un objeto de fecha de JS al formato 'YYYY-MM-DD' que MySQL entiende.
+const formatDateForMySQL = (date) => {
+    if (!date) return null;
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = (`0${d.getMonth() + 1}`).slice(-2); // Añade un 0 inicial si es necesario (ej: 01, 02...)
+    const day = (`0${d.getDate()}`).slice(-2);      // Añade un 0 inicial si es necesario
+    return `${year}-${month}-${day}`;
+};
 
 const EncuestaCreatePage = () => {
     const navigate = useNavigate();
     const [encuestaData, setEncuestaData] = useState({
         nombre: '',
         descripcion: '',
-        fecha_inicio: '',
-        fecha_fin: '',
-        para_externos: false, // Nuevo campo para_externos
+        fecha_inicio: new Date(),
+        fecha_fin: new Date(),
+        para_externos: true,
     });
-    // const [invitacionData, setInvitacionData] = useState({ // Eliminado: los datos de invitación los llena el encuestado
-    //     lugar: '',
-    //     tipo_empresa: '',
-    //     giro: '',
-    //     egresados_universidad: '',
-    // });
-    const [generatedLink, setGeneratedLink] = useState(''); // Nuevo estado para el link/PIN generado
-
     const [allResultados, setAllResultados] = useState([]);
-    const [selectedResultados, setSelectedResultados] = useState([]); // IDs de resultados seleccionados
-    const [preguntas, setPreguntas] = useState([]); // Lista de preguntas a enviar
-    const [newPreguntaText, setNewPreguntaText] = useState(''); // Texto de la nueva pregunta
-    const [newPreguntaContext, setNewPreguntaContext] = useState({ // Contexto para la nueva pregunta
+    const [selectedResultados, setSelectedResultados] = useState([]);
+    const [preguntas, setPreguntas] = useState([]);
+    const [newPreguntaText, setNewPreguntaText] = useState('');
+    const [newPreguntaContext, setNewPreguntaContext] = useState({
         id_resultado_aprendizaje: null,
         criterio_path: '',
         indicador_path: '',
-        indicador_nombre: '' // Para mostrar en el UI
+        indicador_nombre: ''
     });
-    // const [nivelesDesempeno, setNivelesDesempeno] = useState([]); // Eliminado: los niveles ahora vienen de la estructura
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const resultadosRes = await getAllResultados(); // Ya no se carga getAllNivelesDesempeno
+                const resultadosRes = await getAllResultados();
                 setAllResultados(resultadosRes.data);
-                // setNivelesDesempeno(nivelesRes.data); // Eliminado
             } catch (err) {
-                setError('Error al cargar datos necesarios (resultados de aprendizaje).'); // Mensaje de error actualizado
-                console.error(err);
+                setError('Error al cargar las rúbricas.');
             } finally {
                 setLoading(false);
             }
@@ -52,57 +59,21 @@ const EncuestaCreatePage = () => {
     }, []);
 
     const handleEncuestaChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        setEncuestaData(prev => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value
-        }));
+        const { name, value } = e.target;
+        setEncuestaData(prev => ({ ...prev, [name]: value }));
     };
 
-    // const handleInvitacionChange = (e) => { // Eliminado
-    //     const { name, value } = e.target;
-    //     setInvitacionData(prev => ({ ...prev, [name]: value }));
-    // };
-
-    const handleResultadoToggle = (resultadoId) => {
-        setSelectedResultados(prev =>
-            prev.includes(resultadoId)
-                ? prev.filter(id => id !== resultadoId)
-                : [...prev, resultadoId]
-        );
-        // Limpiar preguntas asociadas a este resultado si se deselecciona
-        setPreguntas(prev => prev.filter(p => p.id_resultado_aprendizaje !== resultadoId));
-        // Resetear contexto si se deselecciona el resultado actualmente seleccionado para la pregunta
-        if (newPreguntaContext.id_resultado_aprendizaje === resultadoId) {
-            setNewPreguntaContext({
-                id_resultado_aprendizaje: null,
-                criterio_path: '',
-                indicador_path: '',
-                indicador_nombre: ''
-            });
-            setNewPreguntaText('');
-        }
-    };
-
-    const handleNewPreguntaContextChange = (id_resultado_aprendizaje, criterio_path, indicador_path, indicador_nombre) => {
-        setNewPreguntaContext({
-            id_resultado_aprendizaje,
-            criterio_path,
-            indicador_path,
-            indicador_nombre
-        });
-        setNewPreguntaText(''); // Limpiar texto al cambiar el contexto
+    const handleDateChange = (date, fieldName) => {
+        setEncuestaData(prev => ({ ...prev, [fieldName]: date }));
     };
 
     const handleAddPregunta = () => {
-        if (newPreguntaText.trim() && newPreguntaContext.id_resultado_aprendizaje && newPreguntaContext.criterio_path && newPreguntaContext.indicador_path) {
+        if (newPreguntaText.trim() && newPreguntaContext.id_resultado_aprendizaje) {
             const resultadoAsociado = allResultados.find(r => r.id === newPreguntaContext.id_resultado_aprendizaje);
             let opcionesDescriptores = [];
-            if (resultadoAsociado) {
-                const indicador = resolveJsonPath(resultadoAsociado.estructura, newPreguntaContext.indicador_path);
-                if (indicador && indicador.descriptores) {
-                    opcionesDescriptores = Object.keys(indicador.descriptores).map(nivelNombre => ({ texto: nivelNombre }));
-                }
+
+            if (resultadoAsociado?.estructura?.niveles) {
+                opcionesDescriptores = resultadoAsociado.estructura.niveles.map(nivelNombre => ({ texto: nivelNombre }));
             }
 
             setPreguntas(prev => [
@@ -112,15 +83,29 @@ const EncuestaCreatePage = () => {
                     criterio_path: newPreguntaContext.criterio_path,
                     indicador_path: newPreguntaContext.indicador_path,
                     texto: newPreguntaText.trim(),
-                    opciones: opcionesDescriptores, // Añadir las opciones de descriptores aquí
-                    orden: prev.length + 1,
-                    obligatorio: true, // Por defecto, obligatorio
+                    opciones: opcionesDescriptores,
                 }
             ]);
             setNewPreguntaText('');
-        } else {
-            setError('Por favor, ingresa el texto de la pregunta y selecciona un indicador.');
         }
+    };
+
+    const handleResultadoToggle = (resultadoId) => {
+        setSelectedResultados(prev =>
+            prev.includes(resultadoId)
+                ? prev.filter(id => id !== resultadoId)
+                : [...prev, resultadoId]
+        );
+        setPreguntas(prev => prev.filter(p => p.id_resultado_aprendizaje !== resultadoId));
+        if (newPreguntaContext.id_resultado_aprendizaje === resultadoId) {
+            setNewPreguntaContext({ id_resultado_aprendizaje: null, criterio_path: '', indicador_path: '', indicador_nombre: '' });
+            setNewPreguntaText('');
+        }
+    };
+
+    const handleNewPreguntaContextChange = (id_resultado_aprendizaje, criterio_path, indicador_path, indicador_nombre) => {
+        setNewPreguntaContext({ id_resultado_aprendizaje, criterio_path, indicador_path, indicador_nombre });
+        setNewPreguntaText('');
     };
 
     const handleRemovePregunta = (indexToRemove) => {
@@ -130,34 +115,58 @@ const EncuestaCreatePage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        if (preguntas.length === 0) {
+            setError('Debes añadir al menos una pregunta a la encuesta.');
+            return;
+        }
         setLoading(true);
 
-        try {
-            // Ajustar el orden de las preguntas antes de enviar
-            const preguntasToSubmit = preguntas.map((p, index) => ({ ...p, orden: index + 1 }));
+        // Preparamos el objeto de datos (payload) para enviar al backend
+        const payload = {
+            ...encuestaData,
+            // AQUÍ ESTÁ LA CORRECCIÓN: formateamos las fechas antes de enviar
+            fecha_inicio: formatDateForMySQL(encuestaData.fecha_inicio),
+            fecha_fin: formatDateForMySQL(encuestaData.fecha_fin),
+            preguntas: preguntas.map((p, index) => ({ ...p, orden: index + 1, obligatorio: true })),
+        };
 
-            const res = await createEncuesta({ ...encuestaData, preguntas: preguntasToSubmit });
+        try {
+            const res = await createEncuesta(payload); // Enviamos el payload con las fechas corregidas
             
-            // Si la encuesta es para externos y tiene preguntas, generar la invitación
-            if (res.data.encuesta.para_externos && preguntasToSubmit.length > 0) {
-                const invitacionRes = await createEncuestaInvitacion(res.data.encuesta.id); // No se pasan los datos de invitación aquí
+            if (res.data.encuesta.para_externos) {
+                const invitacionRes = await createEncuestaInvitacion(res.data.encuesta.id);
                 const pin = invitacionRes.data.invitacion.pin;
-                const link = `${window.location.origin}/encuestas/responder/${pin}`; // Generar link
-                setGeneratedLink(link); // Guardar el link para mostrarlo
-                alert(`Encuesta externa creada exitosamente. Comparte este enlace: ${link}`);
+                const link = `${window.location.origin}/encuestas/responder/${pin}`;
+
+                MySwal.fire({
+                    title: '¡Encuesta Creada!',
+                    html: `
+                        <p>La encuesta externa ha sido creada exitosamente.</p>
+                        <p style="margin-top: 1rem;">Comparte este enlace único con los participantes:</p>
+                        <div class="swal-link-container">
+                            <a href="${link}" target="_blank">${link}</a>
+                        </div>
+                    `,
+                    icon: 'success',
+                    confirmButtonText: 'Copiar Enlace y Cerrar',
+                    showDenyButton: true,
+                    denyButtonText: 'Ir a Encuestas',
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        navigator.clipboard.writeText(link);
+                    }
+                    navigate('/encuestas');
+                });
             } else {
                 navigate('/encuestas');
             }
         } catch (err) {
-            setError('Error al crear la encuesta o la invitación.');
-            console.error(err);
+            console.error("Error detallado al crear encuesta:", err.response?.data || err);
+            setError('Error al crear la encuesta o la invitación. Revisa la consola para más detalles.');
         } finally {
             setLoading(false);
         }
     };
-
-    if (loading) return <p>Cargando datos...</p>;
-    if (error) return <p className="error-message">{error}</p>;
 
     const resolveJsonPath = (obj, path) => {
         if (!obj || !path) return undefined;
@@ -167,217 +176,183 @@ const EncuestaCreatePage = () => {
             const arrayMatch = part.match(/(\w+)\[(\d+)\]/);
             if (arrayMatch) {
                 const [, key, index] = arrayMatch;
-                if (current[key] && Array.isArray(current[key]) && current[key][parseInt(index)] !== undefined) {
-                    current = current[key][parseInt(index)];
-                } else {
-                    return undefined;
-                }
+                current = current?.[key]?.[parseInt(index)];
             } else {
-                if (current[part] !== undefined) {
-                    current = current[part];
-                } else {
-                    return undefined;
-                }
+                current = current?.[part];
             }
         }
         return current;
     };
 
+    if (loading && allResultados.length === 0) return <p>Cargando datos...</p>;
+    
     return (
-        <div className="form-container">
-            <h1>Crear Nueva Encuesta</h1>
-            <form onSubmit={handleSubmit} className="form">
-                <div className="form-group">
-                    <label htmlFor="nombre">Nombre de la Encuesta</label>
-                    <input
-                        type="text"
-                        id="nombre"
-                        name="nombre"
-                        value={encuestaData.nombre}
-                        onChange={handleEncuestaChange}
-                        required
-                    />
-                </div>
-                <div className="form-group">
-                    <label htmlFor="descripcion">Descripción</label>
-                    <textarea
-                        id="descripcion"
-                        name="descripcion"
-                        value={encuestaData.descripcion}
-                        onChange={handleEncuestaChange}
-                        required
-                    ></textarea>
-                </div>
-                <div className="form-group">
-                    <label htmlFor="fecha_inicio">Fecha de Inicio</label>
-                    <input
-                        type="date"
-                        id="fecha_inicio"
-                        name="fecha_inicio"
-                        value={encuestaData.fecha_inicio}
-                        onChange={handleEncuestaChange}
-                        required
-                    />
-                </div>
-                <div className="form-group">
-                    <label htmlFor="fecha_fin">Fecha de Fin</label>
-                    <input
-                        type="date"
-                        id="fecha_fin"
-                        name="fecha_fin"
-                        value={encuestaData.fecha_fin}
-                        onChange={handleEncuestaChange}
-                        required
-                    />
-                </div>
+        <motion.div 
+            className="page-container"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+        >
+            <div className="page-header">
+                <h1>Crear Nueva Encuesta</h1>
+            </div>
 
-                <div className="form-group checkbox-group">
-                    <input
-                        type="checkbox"
-                        id="para_externos"
-                        name="para_externos"
-                        checked={encuestaData.para_externos}
-                        onChange={handleEncuestaChange}
-                    />
-                    <label htmlFor="para_externos">Encuesta para Público Externo</label>
-                </div>
-
-                {generatedLink && (
-                    <div className="generated-link-section" style={{ marginTop: '20px', padding: '15px', border: '1px solid #4CAF50', borderRadius: '8px', backgroundColor: '#e8f5e9' }}>
-                        <h3>Enlace de Invitación Generado</h3>
-                        <p>Comparte este enlace con los encuestados externos:</p>
-                        <a href={generatedLink} target="_blank" rel="noopener noreferrer" style={{ wordBreak: 'break-all' }}>
-                            {generatedLink}
-                        </a>
-                        <button type="button" onClick={() => navigator.clipboard.writeText(generatedLink)} className="btn btn-sm" style={{ marginLeft: '10px', backgroundColor: '#007bff', color: 'white' }}>Copiar Enlace</button>
+            <form onSubmit={handleSubmit} className="form-wizard">
+                {/* PASO 1: DATOS GENERALES */}
+                <div className="wizard-step">
+                    <div className="step-header">
+                        <span className="step-number">1</span>
+                        <h2>Información General de la Encuesta</h2>
                     </div>
-                )}
-
-                <h2>Seleccionar Rúbricas y Añadir Preguntas</h2>
-                <p>Selecciona las rúbricas de las que provendrán los criterios e indicadores a los que se asociarán las preguntas de la encuesta. Luego, añade preguntas para los indicadores seleccionados.</p>
-
-                <div className="resultados-selection-container">
-                    {allResultados.map(resultado => (
-                        <div key={resultado.id} className="resultado-card">
-                            <div className="resultado-header">
-                                <input
-                                    type="checkbox"
-                                    id={`resultado-${resultado.id}`}
-                                    checked={selectedResultados.includes(resultado.id)}
-                                    onChange={() => handleResultadoToggle(resultado.id)}
-                                />
-                                <label htmlFor={`resultado-${resultado.id}`}>
-                                    <strong>{resultado.codigo}:</strong> {resultado.descripcion}
-                                </label>
-                            </div>
-                            {selectedResultados.includes(resultado.id) && (
-                                <div className="criterios-indicadores-list" style={{ marginLeft: '20px' }}>
-                                    {resultado.estructura.criterios.map((criterio, cIndex) => (
-                                        <div key={cIndex} className="criterio-group" style={{ borderLeft: '2px solid #eee', paddingLeft: '10px', marginTop: '10px' }}>
-                                            <h4>Criterio: {criterio.nombre}</h4>
-                                            {criterio.indicadores.map((indicador, iIndex) => {
-                                                const criterioPath = `$.criterios[${cIndex}]`;
-                                                const indicadorPath = `$.criterios[${cIndex}].indicadores[${iIndex}]`;
-                                                return (
-                                                    <div key={iIndex} className="indicador-item" style={{ marginBottom: '5px' }}>
-                                                        <input
-                                                            type="radio"
-                                                            name={`pregunta-context-${resultado.id}`}
-                                                            id={`indicador-${resultado.id}-${cIndex}-${iIndex}`}
-                                                            checked={
-                                                                newPreguntaContext.id_resultado_aprendizaje === resultado.id &&
-                                                                newPreguntaContext.criterio_path === criterioPath &&
-                                                                newPreguntaContext.indicador_path === indicadorPath
-                                                            }
-                                                            onChange={() => handleNewPreguntaContextChange(resultado.id, criterioPath, indicadorPath, indicador.nombre)}
-                                                        />
-                                                        <label htmlFor={`indicador-${resultado.id}-${cIndex}-${iIndex}`}>
-                                                            Indicador: {indicador.nombre}
-                                                        </label>
-                                                        {newPreguntaContext.id_resultado_aprendizaje === resultado.id &&
-                                                         newPreguntaContext.criterio_path === criterioPath &&
-                                                         newPreguntaContext.indicador_path === indicadorPath && (
-                                                            <div style={{ marginLeft: '30px', borderLeft: '1px dashed #ccc', paddingLeft: '10px', marginTop: '5px' }}>
-                                                                <p><strong>Niveles de Desempeño para esta rúbrica:</strong></p>
-                                                                <ul style={{ listStyleType: 'disc', marginLeft: '20px' }}>
-                                                                    {resultado.estructura.niveles.map((nivel, idx) => ( // Usar los niveles de desempeño de la estructura de la rúbrica
-                                                                        <li key={idx}>{nivel}</li>
-                                                                    ))}
-                                                                </ul>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                    <div className="form-grid">
+                        <div className="form-group grid-col-span-2">
+                            <label htmlFor="nombre">Nombre de la Encuesta</label>
+                            <input type="text" id="nombre" name="nombre" value={encuestaData.nombre} onChange={handleEncuestaChange} required placeholder="Ej: Encuesta de Satisfacción Egresados 2025" />
                         </div>
-                    ))}
+                        <div className="form-group grid-col-span-2">
+                            <label htmlFor="descripcion">Descripción</label>
+                            <textarea id="descripcion" name="descripcion" value={encuestaData.descripcion} onChange={handleEncuestaChange} required placeholder="Describe el propósito de esta encuesta..."></textarea>
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="fecha_inicio">Fecha de Inicio</label>
+                            <div className="date-picker-wrapper">
+                                <DatePicker
+                                    selected={encuestaData.fecha_inicio}
+                                    onChange={(date) => handleDateChange(date, 'fecha_inicio')}
+                                    dateFormat="dd/MM/yyyy"
+                                    className="date-picker-input"
+                                    required
+                                />
+                                <FiCalendar className="date-picker-icon" />
+                            </div>
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="fecha_fin">Fecha de Fin</label>
+                             <div className="date-picker-wrapper">
+                                <DatePicker
+                                    selected={encuestaData.fecha_fin}
+                                    onChange={(date) => handleDateChange(date, 'fecha_fin')}
+                                    dateFormat="dd/MM/yyyy"
+                                    className="date-picker-input"
+                                    minDate={encuestaData.fecha_inicio}
+                                    required
+                                />
+                                <FiCalendar className="date-picker-icon" />
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="add-pregunta-section" style={{ marginTop: '30px', borderTop: '1px solid #ddd', paddingTop: '20px' }}>
-                    <h2>Añadir Nueva Pregunta</h2>
-                    {newPreguntaContext.indicador_nombre ? (
-                        <p>Añadiendo pregunta para: <strong>{newPreguntaContext.indicador_nombre}</strong> (Rúbrica ID: {newPreguntaContext.id_resultado_aprendizaje})</p>
+                {/* PASO 2: SELECCIONAR RÚBRICAS */}
+                <div className="wizard-step">
+                     <div className="step-header">
+                        <span className="step-number">2</span>
+                        <h2>Seleccionar Rúbricas y Añadir Preguntas</h2>
+                    </div>
+                    <p className="step-description">Selecciona las rúbricas y luego los indicadores específicos a los que asociarás tus preguntas.</p>
+                    <div className="rubrica-selection-container">
+                        {allResultados.map(resultado => (
+                            <div key={resultado.id} className="rubrica-card">
+                                <div className="rubrica-header" onClick={() => handleResultadoToggle(resultado.id)}>
+                                    <input type="checkbox" checked={selectedResultados.includes(resultado.id)} readOnly />
+                                    <label><strong>{resultado.codigo}:</strong> {resultado.descripcion}</label>
+                                </div>
+                                {selectedResultados.includes(resultado.id) && (
+                                    <div className="indicadores-list">
+                                        {resultado.estructura.criterios.map((criterio, cIndex) => (
+                                            <div key={cIndex} className="criterio-group">
+                                                <h4>{criterio.nombre}</h4>
+                                                {criterio.indicadores.map((indicador, iIndex) => {
+                                                    const criterioPath = `$.criterios[${cIndex}]`;
+                                                    const indicadorPath = `$.criterios[${cIndex}].indicadores[${iIndex}]`;
+                                                    const isSelected = newPreguntaContext.indicador_path === indicadorPath;
+                                                    return (
+                                                        <div 
+                                                            key={iIndex} 
+                                                            className={`indicador-item ${isSelected ? 'selected' : ''}`}
+                                                            onClick={() => handleNewPreguntaContextChange(resultado.id, criterioPath, indicadorPath, indicador.nombre)}
+                                                        >
+                                                            <span>{indicador.nombre}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                
+                {/* PASO 3: AÑADIR PREGUNTA */}
+                <div className="wizard-step">
+                    <div className="step-header">
+                        <span className="step-number">3</span>
+                        <h2>Añadir Nueva Pregunta</h2>
+                    </div>
+                     {newPreguntaContext.indicador_nombre ? (
+                        <p className="step-description">Añadiendo pregunta para el indicador: <strong>"{newPreguntaContext.indicador_nombre}"</strong></p>
                     ) : (
-                        <p>Selecciona un indicador de la lista de rúbricas para añadir una pregunta.</p>
+                        <p className="step-description">Por favor, selecciona un indicador del paso anterior para poder añadir una pregunta.</p>
                     )}
-                    <div className="form-group">
-                        <label htmlFor="newPreguntaText">Texto de la Pregunta</label>
+                    <div className="add-pregunta-form">
                         <textarea
-                            id="newPreguntaText"
                             value={newPreguntaText}
                             onChange={(e) => setNewPreguntaText(e.target.value)}
                             placeholder="Escribe el texto de la pregunta aquí..."
                             disabled={!newPreguntaContext.indicador_path}
-                            required
+                            rows="4"
                         ></textarea>
+                        <button type="button" onClick={handleAddPregunta} className="btn btn-secondary" disabled={!newPreguntaContext.indicador_path || !newPreguntaText.trim()}>
+                            <FiPlus /> Añadir Pregunta
+                        </button>
                     </div>
-                    <button type="button" onClick={handleAddPregunta} className="btn btn-secondary" disabled={!newPreguntaContext.indicador_path || !newPreguntaText.trim()}>
-                        Añadir Pregunta a la Encuesta
+                </div>
+
+                {/* PASO 4: LISTA DE PREGUNTAS */}
+                <div className="wizard-step">
+                    <div className="step-header">
+                        <span className="step-number">4</span>
+                        <h2>Preguntas de la Encuesta ({preguntas.length})</h2>
+                    </div>
+                    {preguntas.length === 0 ? (
+                        <p className="step-description">Aún no has añadido ninguna pregunta.</p>
+                    ) : (
+                        <div className="preguntas-resumen-list">
+                            {preguntas.map((pregunta, index) => {
+                                const resultadoAsociado = allResultados.find(r => r.id === pregunta.id_resultado_aprendizaje);
+                                const indicador = resultadoAsociado ? resolveJsonPath(resultadoAsociado.estructura, pregunta.indicador_path) : null;
+                                return (
+                                    <div key={index} className="pregunta-resumen-item">
+                                        <div className="pregunta-info">
+                                            <span className="pregunta-numero">{index + 1}.</span>
+                                            <div className="pregunta-text-content">
+                                                <p className="pregunta-texto">{pregunta.texto}</p>
+                                                <p className="pregunta-contexto">
+                                                    Asociada a: {resultadoAsociado?.codigo || 'N/A'} - {indicador?.nombre || 'Indicador no encontrado'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button type="button" onClick={() => handleRemovePregunta(index)} className="btn btn-danger-outline">
+                                            <FiTrash2 />
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+
+                {error && <p className="form-feedback error">{error}</p>}
+
+                <div className="form-submit-container">
+                    <button type="submit" className="btn btn-primary" disabled={loading || preguntas.length === 0}>
+                        {loading ? 'Creando Encuesta...' : 'Finalizar y Crear Encuesta'}
                     </button>
                 </div>
-
-                <div className="preguntas-list-final" style={{ marginTop: '30px', borderTop: '1px solid #ddd', paddingTop: '20px' }}>
-                    <h2>Preguntas de la Encuesta ({preguntas.length})</h2>
-                    {preguntas.length === 0 && <p>No hay preguntas añadidas a esta encuesta aún.</p>}
-                    <ol>
-                        {preguntas.map((pregunta, index) => {
-                            // Encontrar el resultado de aprendizaje para mostrar su código
-                            const resultadoAsociado = allResultados.find(r => r.id === pregunta.id_resultado_aprendizaje);
-                            let indicadorNombre = "N/A";
-                            if (resultadoAsociado) {
-                                const estructura = resultadoAsociado.estructura;
-                                const indicador = resolveJsonPath(estructura, pregunta.indicador_path);
-                                if (indicador) {
-                                    indicadorNombre = indicador.nombre;
-                                }
-                            }
-                            
-                            return (
-                                <li key={index} style={{ marginBottom: '15px', padding: '10px', border: '1px solid #eee', borderRadius: '5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div>
-                                        <strong>{pregunta.texto}</strong>
-                                        <p style={{ fontSize: '0.85em', color: '#666', margin: '5px 0 0 0' }}>
-                                            Asociada a: {resultadoAsociado ? resultadoAsociado.codigo : 'N/A'} {indicadorNombre}
-                                        </p>
-                                    </div>
-                                    <button type="button" onClick={() => handleRemovePregunta(index)} className="btn btn-danger btn-sm">
-                                        Eliminar
-                                    </button>
-                                </li>
-                            );
-                        })}
-                    </ol>
-                </div>
-
-                <button type="submit" className="btn btn-primary" disabled={loading}>
-                    {loading ? 'Creando...' : 'Crear Encuesta'}
-                </button>
             </form>
-        </div>
+        </motion.div>
     );
 };
 
