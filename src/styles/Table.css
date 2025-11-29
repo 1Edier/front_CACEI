@@ -1,122 +1,162 @@
 /* src/styles/Table.css */
-/* ... (Estilos de .page-container, .page-header, .table-wrapper, .styled-table se mantienen igual) ... */
 
-.page-container {
-  padding: 2rem;
-}
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-.page-header h1 { margin: 0; }
-.table-wrapper {
-    background: var(--surface-color);
-    border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow);
-    overflow: hidden;
-    border: 1px solid var(--border-color);
-}
 .styled-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.9rem;
+    margin: 25px 0;
+    font-size: 0.9em;
+    font-family: sans-serif;
+    min-width: 400px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+    border-radius: 8px 8px 0 0;
+    overflow: hidden;
 }
+
 .styled-table thead tr {
-    background-color: #F8F9FA;
-    color: var(--secondary-color);
+    background-color: var(--primary-color, #009879);
+    color: #ffffff;
     text-align: left;
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.05em;
 }
-.styled-table th, .styled-table td { padding: 1rem 1.5rem; }
+
+.styled-table th,
+.styled-table td {
+    padding: 12px 15px;
+}
+
 .styled-table tbody tr {
-    border-bottom: 1px solid var(--border-color);
-    transition: var(--transition-fast);
+    border-bottom: 1px solid #dddddd;
 }
-.styled-table tbody tr:hover { background-color: #f7faff; }
-.styled-table tbody tr:last-of-type { border-bottom: none; }
-.action-buttons { display: flex; gap: 0.5rem; align-items: center; }
-.action-buttons .btn { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
 
+.styled-table tbody tr:nth-of-type(even) {
+    background-color: #f3f3f3;
+}
 
-/* --- Estilos para la Vista Detallada de la Rúbrica --- */
-.rubrica-view-container {
-    background: var(--surface-color);
-    padding: 2.5rem;
-    border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow);
-    border: 1px solid var(--border-color);
+.styled-table tbody tr:last-of-type {
+    border-bottom: 2px solid var(--primary-color, #009879);
 }
-.rubrica-header {
-    margin-bottom: 2rem;
-    border-bottom: 2px solid var(--primary-color);
-    padding-bottom: 1rem;
+
+.styled-table tbody tr.active-row {
+    font-weight: bold;
+    color: var(--primary-color, #009879);
 }
+
+/* =========================================
+   NUEVOS ESTILOS PARA BOTONES DE ACCIÓN
+   ========================================= */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    /* Evita que se desborden si hay poco espacio */
+}
+
+.action-buttons .btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+}
+
+/* =========================================
+   NUEVOS ESTILOS PARA TABLA VISUAL DE RÚBRICA
+   ========================================= */
 .visual-rubrica-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 1.5rem;
-    table-layout: auto; /* Dejamos que la tabla ajuste el ancho */
-}
-.visual-rubrica-table th,
-.visual-rubrica-table td {
-    border: 1px solid #ccc;
-    padding: 12px;
-    text-align: left;
-    line-height: 1.5; /* Mejora la legibilidad */
+    margin: 20px 0;
+    font-size: 0.9em;
+    font-family: sans-serif;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+    border: 1px solid #ddd;
+    /* Borde exterior */
 }
 
-/* ======================================================= */
-/* ========= ESTILOS NUEVOS Y ACTUALIZADOS ============= */
-/* ======================================================= */
-
-.visual-rubrica-table thead th {
-    background-color: #e9ecef; /* Un gris ligeramente más oscuro */
-    font-weight: 600;
-    color: var(--secondary-color);
-    vertical-align: middle;
+.visual-rubrica-table thead tr {
+    background-color: var(--primary-color, #2c3e50);
+    color: #ffffff;
     text-align: center;
 }
 
-/* Estilos para la cabecera secundaria */
-.visual-rubrica-table .sub-header-num,
-.visual-rubrica-table .sub-header-ind,
-.visual-rubrica-table .sub-header-nivel {
-    background-color: #f8f9fa; /* Un gris más claro */
+.visual-rubrica-table th {
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    /* Bordes sutiles en cabecera */
     font-weight: 600;
-}
-
-.visual-rubrica-table .criterio-cell-vertical {
-    width: 20%;
-    font-weight: 500;
-    background-color: #f8f9fa;
     vertical-align: middle;
-    text-align: left;
 }
 
-/* Estilo para la CELDA del NÚMERO */
-.indicador-number-cell {
-    width: 50px; /* Ancho fijo y estrecho */
-    text-align: center; /* Centrado horizontal */
-    vertical-align: middle; /* Centrado vertical */
+.visual-rubrica-table td {
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    /* Líneas de separación visibles */
+    vertical-align: top;
+    line-height: 1.5;
+}
+
+/* Estilos específicos para celdas */
+.criterio-cell-vertical {
     background-color: #f8f9fa;
-    font-weight: 500;
-    border-right: 1px solid #ccc !important; /* Línea divisoria */
+    font-weight: bold;
+    color: var(--primary-color);
+    vertical-align: middle;
+    text-align: center;
+    width: 15%;
 }
 
-/* Estilo para la CELDA del TEXTO del indicador */
+.indicador-number-cell {
+    font-weight: bold;
+    text-align: center;
+    background-color: #f1f1f1;
+    width: 50px;
+}
+
 .indicador-text-cell {
-    width: 25%;
-    vertical-align: top;
     font-weight: 500;
+    width: 20%;
 }
 
-/* Estilo para las CELDAS de los descriptores */
 .descriptor-cell {
-    vertical-align: top;
-    font-size: 0.9em;
+    font-size: 0.85em;
+    color: #555;
+    background-color: white;
+}
+
+/* Sub-headers para niveles */
+.sub-header-num {
+    width: 50px;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.sub-header-ind {
+    width: 20%;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.sub-header-nivel {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+
+    .styled-table,
+    .visual-rubrica-table {
+        font-size: 0.8em;
+    }
+
+    .styled-table th,
+    .styled-table td,
+    .visual-rubrica-table th,
+    .visual-rubrica-table td {
+        padding: 8px 10px;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .action-buttons .btn {
+        width: 100%;
+        justify-content: center;
+    }
 }

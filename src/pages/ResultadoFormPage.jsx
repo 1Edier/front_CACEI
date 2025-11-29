@@ -23,13 +23,17 @@ const ResultadoFormPage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    // Estados para navegación y UI mejorada
+    const [activeCriterioIndex, setActiveCriterioIndex] = useState(0);
+    const [expandedIndicadores, setExpandedIndicadores] = useState({});
+
     useEffect(() => {
         if (isEditing) {
             setLoading(true);
             const fetchResultado = async () => {
                 try {
                     const { data } = await getResultadoById(id);
-                    setFormData(data); // El estado ahora contiene toda la estructura
+                    setFormData(data);
                 } catch (err) {
                     setError('No se pudo cargar la rúbrica.');
                     console.error(err);
@@ -57,16 +61,18 @@ const ResultadoFormPage = () => {
 
     // --- MANEJADORES PARA CRITERIOS ---
     const handleAddCriterio = () => {
+        const newIndex = formData.estructura.criterios.length;
         setFormData(prev => ({
             ...prev,
             estructura: {
                 ...prev.estructura,
                 criterios: [
                     ...prev.estructura.criterios,
-                    { nombre: '', orden: prev.estructura.criterios.length + 1, indicadores: [] }
+                    { nombre: '', orden: newIndex + 1, indicadores: [] }
                 ]
             }
         }));
+        setActiveCriterioIndex(newIndex);
     };
 
     const handleCriterioChange = (index, value) => {
@@ -78,25 +84,34 @@ const ResultadoFormPage = () => {
     const handleRemoveCriterio = (index) => {
         const nuevosCriterios = formData.estructura.criterios.filter((_, i) => i !== index);
         setFormData(prev => ({ ...prev, estructura: { ...prev.estructura, criterios: nuevosCriterios } }));
+        if (activeCriterioIndex >= nuevosCriterios.length) {
+            setActiveCriterioIndex(Math.max(0, nuevosCriterios.length - 1));
+        }
     };
 
     // --- MANEJADORES PARA INDICADORES ---
     const handleAddIndicador = (criterioIndex) => {
         const nuevosCriterios = [...formData.estructura.criterios];
         const indicadoresActuales = nuevosCriterios[criterioIndex].indicadores;
-        
-        // Crear descriptores vacíos basados en los niveles actuales
+
         const nuevosDescriptores = formData.estructura.niveles.reduce((acc, nivel) => {
-            acc[nivel.toLowerCase().replace(/ /g, '_')] = ''; // ej: "superior_al_promedio"
+            acc[nivel.toLowerCase().replace(/ /g, '_')] = '';
             return acc;
         }, {});
 
+        const newIndicadorIndex = indicadoresActuales.length;
         indicadoresActuales.push({
             nombre: '',
-            orden: indicadoresActuales.length + 1,
+            orden: newIndicadorIndex + 1,
             descriptores: nuevosDescriptores,
         });
         setFormData(prev => ({ ...prev, estructura: { ...prev.estructura, criterios: nuevosCriterios } }));
+
+        // Auto-expandir el nuevo indicador
+        setExpandedIndicadores(prev => ({
+            ...prev,
+            [`${criterioIndex}-${newIndicadorIndex}`]: true
+        }));
     };
 
     const handleIndicadorChange = (criterioIndex, indicadorIndex, field, value) => {
@@ -115,6 +130,27 @@ const ResultadoFormPage = () => {
         const nuevosCriterios = [...formData.estructura.criterios];
         nuevosCriterios[criterioIndex].indicadores = nuevosCriterios[criterioIndex].indicadores.filter((_, i) => i !== indicadorIndex);
         setFormData(prev => ({ ...prev, estructura: { ...prev.estructura, criterios: nuevosCriterios } }));
+    };
+
+    const toggleIndicador = (criterioIndex, indicadorIndex) => {
+        const key = `${criterioIndex}-${indicadorIndex}`;
+        setExpandedIndicadores(prev => ({
+            ...prev,
+            [key]: !prev[key]
+        }));
+    };
+
+    // --- NAVEGACIÓN ---
+    const goToPreviousCriterio = () => {
+        if (activeCriterioIndex > 0) {
+            setActiveCriterioIndex(activeCriterioIndex - 1);
+        }
+    };
+
+    const goToNextCriterio = () => {
+        if (activeCriterioIndex < formData.estructura.criterios.length - 1) {
+            setActiveCriterioIndex(activeCriterioIndex + 1);
+        }
     };
 
     // --- MANEJADOR DE ENVÍO ---
@@ -140,8 +176,10 @@ const ResultadoFormPage = () => {
 
     if (loading && isEditing) return <p>Cargando datos de la rúbrica...</p>;
 
+    const activeCriterio = formData.estructura.criterios[activeCriterioIndex];
+
     return (
-        <div className="form-container" style={{ maxWidth: '900px' }}>
+        <div className="form-container" style={{ maxWidth: '1200px' }}>
             <h2 className="form-title">{isEditing ? 'Editar Rúbrica' : 'Crear Nueva Rúbrica'}</h2>
             <form onSubmit={handleSubmit}>
                 {/* --- DATOS GENERALES --- */}
@@ -158,57 +196,182 @@ const ResultadoFormPage = () => {
                     <input type="text" id="niveles" name="niveles" value={formData.estructura.niveles.join(', ')} onChange={handleNivelesChange} required />
                 </div>
 
-                {/* --- CONSTRUCTOR DE RÚBRICA --- */}
+                {/* --- CONSTRUCTOR DE RÚBRICA CON PESTAÑAS --- */}
                 <div className="rubrica-builder">
-                    <h3>Criterios de Evaluación</h3>
-                    {formData.estructura.criterios.map((criterio, critIndex) => (
-                        <div key={critIndex} className="criterio-card">
-                            <div className="criterio-header">
-                                <strong>Criterio {critIndex + 1}</strong>
-                                <button type="button" className="btn btn-sm btn-danger-outline" onClick={() => handleRemoveCriterio(critIndex)}>Eliminar Criterio</button>
-                            </div>
-                            <div className="form-group">
-                                <label>Nombre del Criterio</label>
-                                <input type="text" value={criterio.nombre} onChange={(e) => handleCriterioChange(critIndex, e.target.value)} required />
-                            </div>
-                            
-                            {/* --- INDICADORES --- */}
-                            <h4>Indicadores</h4>
-                            {criterio.indicadores.map((indicador, indIndex) => (
-                                <div key={indIndex} className="indicador-card">
-                                    <div className="indicador-header">
-                                        <strong>Indicador {indIndex + 1}</strong>
-                                        <button type="button" className="btn btn-sm btn-danger-outline" onClick={() => handleRemoveIndicador(critIndex, indIndex)}>Eliminar Indicador</button>
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Nombre del Indicador</label>
-                                        <input type="text" value={indicador.nombre} onChange={(e) => handleIndicadorChange(critIndex, indIndex, 'nombre', e.target.value)} required />
-                                    </div>
+                    <div className="rubrica-builder-header">
+                        <h3>Criterios de Evaluación</h3>
+                        <button type="button" className="btn btn-add-criterio" onClick={handleAddCriterio}>
+                            ➕ Añadir Criterio
+                        </button>
+                    </div>
 
-                                    {/* --- DESCRIPTORES --- */}
-                                    <h5>Descriptores por Nivel</h5>
-                                    {formData.estructura.niveles.map((nivel) => {
-                                        const nivelKey = nivel.toLowerCase().replace(/ /g, '_');
-                                        return (
-                                            <div key={nivelKey} className="form-group">
-                                                <label>{nivel}</label>
-                                                <textarea value={indicador.descriptores[nivelKey] || ''} onChange={(e) => handleDescriptorChange(critIndex, indIndex, nivelKey, e.target.value)} />
+                    {formData.estructura.criterios.length === 0 ? (
+                        <div className="empty-state">
+                            <p>No hay criterios aún. Haz clic en "Añadir Criterio" para comenzar.</p>
+                        </div>
+                    ) : (
+                        <div className="rubrica-tabs-container">
+                            {/* Panel Lateral de Navegación */}
+                            <div className="rubrica-sidebar">
+                                <div className="sidebar-title">Criterios</div>
+                                {formData.estructura.criterios.map((criterio, index) => (
+                                    <button
+                                        key={index}
+                                        type="button"
+                                        className={`rubrica-tab-button ${activeCriterioIndex === index ? 'active' : ''}`}
+                                        onClick={() => setActiveCriterioIndex(index)}
+                                    >
+                                        <div className="tab-number">{index + 1}</div>
+                                        <div className="tab-info">
+                                            <div className="tab-name">{criterio.nombre || 'Sin nombre'}</div>
+                                            <div className="tab-meta">{criterio.indicadores.length} indicador{criterio.indicadores.length !== 1 ? 'es' : ''}</div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Contenido del Criterio Activo */}
+                            <div className="rubrica-content">
+                                {activeCriterio && (
+                                    <div className="criterio-active-card">
+                                        <div className="criterio-header-modern">
+                                            <div className="criterio-title-section">
+                                                <span className="criterio-badge">Criterio {activeCriterioIndex + 1}</span>
+                                                <h4>Configuración del Criterio</h4>
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                            ))}
-                            <div className="add-btn-container">
-                                <button type="button" className="btn btn-secondary" onClick={() => handleAddIndicador(critIndex)}>+ Añadir Indicador</button>
+                                            <button
+                                                type="button"
+                                                className="btn btn-sm btn-danger-outline"
+                                                onClick={() => handleRemoveCriterio(activeCriterioIndex)}
+                                            >
+                                                🗑️ Eliminar
+                                            </button>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Nombre del Criterio</label>
+                                            <input
+                                                type="text"
+                                                value={activeCriterio.nombre}
+                                                onChange={(e) => handleCriterioChange(activeCriterioIndex, e.target.value)}
+                                                placeholder="Ej: Comunicación efectiva"
+                                                required
+                                            />
+                                        </div>
+
+                                        {/* Indicadores con Acordeones */}
+                                        <div className="indicadores-section">
+                                            <div className="section-header">
+                                                <h4>Indicadores ({activeCriterio.indicadores.length})</h4>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-secondary btn-sm"
+                                                    onClick={() => handleAddIndicador(activeCriterioIndex)}
+                                                >
+                                                    ➕ Añadir Indicador
+                                                </button>
+                                            </div>
+
+                                            {activeCriterio.indicadores.length === 0 ? (
+                                                <div className="empty-state-small">
+                                                    <p>No hay indicadores. Añade uno para comenzar.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="indicadores-list">
+                                                    {activeCriterio.indicadores.map((indicador, indIndex) => {
+                                                        const isExpanded = expandedIndicadores[`${activeCriterioIndex}-${indIndex}`];
+                                                        return (
+                                                            <div key={indIndex} className="indicador-accordion">
+                                                                <div className="indicador-accordion-header">
+                                                                    <button
+                                                                        type="button"
+                                                                        className="accordion-toggle"
+                                                                        onClick={() => toggleIndicador(activeCriterioIndex, indIndex)}
+                                                                    >
+                                                                        <span className="toggle-icon">{isExpanded ? '▼' : '▶'}</span>
+                                                                        <span className="indicador-number">Indicador {indIndex + 1}</span>
+                                                                        <span className="indicador-name-preview">
+                                                                            {indicador.nombre || 'Sin nombre'}
+                                                                        </span>
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn btn-sm btn-danger-outline"
+                                                                        onClick={() => handleRemoveIndicador(activeCriterioIndex, indIndex)}
+                                                                    >
+                                                                        🗑️
+                                                                    </button>
+                                                                </div>
+
+                                                                {isExpanded && (
+                                                                    <div className="indicador-accordion-content">
+                                                                        <div className="form-group">
+                                                                            <label>Nombre del Indicador</label>
+                                                                            <input
+                                                                                type="text"
+                                                                                value={indicador.nombre}
+                                                                                onChange={(e) => handleIndicadorChange(activeCriterioIndex, indIndex, 'nombre', e.target.value)}
+                                                                                placeholder="Ej: Claridad en la expresión oral"
+                                                                                required
+                                                                            />
+                                                                        </div>
+
+                                                                        <h5 className="descriptores-title">Descriptores por Nivel</h5>
+                                                                        <div className="descriptores-grid">
+                                                                            {formData.estructura.niveles.map((nivel) => {
+                                                                                const nivelKey = nivel.toLowerCase().replace(/ /g, '_');
+                                                                                return (
+                                                                                    <div key={nivelKey} className="descriptor-item">
+                                                                                        <label className="descriptor-label">{nivel}</label>
+                                                                                        <textarea
+                                                                                            value={indicador.descriptores[nivelKey] || ''}
+                                                                                            onChange={(e) => handleDescriptorChange(activeCriterioIndex, indIndex, nivelKey, e.target.value)}
+                                                                                            placeholder={`Descripción para nivel ${nivel.toLowerCase()}`}
+                                                                                            rows="3"
+                                                                                        />
+                                                                                    </div>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Botones de Navegación */}
+                                        <div className="navigation-buttons">
+                                            <button
+                                                type="button"
+                                                className="btn btn-nav"
+                                                onClick={goToPreviousCriterio}
+                                                disabled={activeCriterioIndex === 0}
+                                            >
+                                                ← Anterior
+                                            </button>
+                                            <span className="nav-indicator">
+                                                {activeCriterioIndex + 1} de {formData.estructura.criterios.length}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                className="btn btn-nav"
+                                                onClick={goToNextCriterio}
+                                                disabled={activeCriterioIndex === formData.estructura.criterios.length - 1}
+                                            >
+                                                Siguiente →
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
-                    ))}
-                    <div className="add-btn-container">
-                        <button type="button" className="btn" onClick={handleAddCriterio}>+ Añadir Criterio</button>
-                    </div>
+                    )}
                 </div>
 
-                <button type="submit" className="btn btn-primary" disabled={loading} style={{ marginTop: '2rem' }}>
+                <button type="submit" className="btn btn-primary btn-submit" disabled={loading}>
                     {loading ? 'Guardando...' : 'Guardar Rúbrica'}
                 </button>
                 {error && <p className="error-message">{error}</p>}

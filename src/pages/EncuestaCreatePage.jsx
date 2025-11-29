@@ -33,6 +33,7 @@ const EncuestaCreatePage = () => {
     });
     const [allResultados, setAllResultados] = useState([]);
     const [selectedResultados, setSelectedResultados] = useState([]);
+    const [selectedIndicadores, setSelectedIndicadores] = useState([]); // Nuevo estado para indicadores seleccionados
     const [preguntas, setPreguntas] = useState([]);
     const [newPreguntaText, setNewPreguntaText] = useState('');
     const [newPreguntaContext, setNewPreguntaContext] = useState({
@@ -91,21 +92,67 @@ const EncuestaCreatePage = () => {
     };
 
     const handleResultadoToggle = (resultadoId) => {
-        setSelectedResultados(prev =>
-            prev.includes(resultadoId)
-                ? prev.filter(id => id !== resultadoId)
-                : [...prev, resultadoId]
-        );
-        setPreguntas(prev => prev.filter(p => p.id_resultado_aprendizaje !== resultadoId));
+        const resultado = allResultados.find(r => r.id === resultadoId);
+
+        setSelectedResultados(prev => {
+            const isSelected = prev.includes(resultadoId);
+            if (isSelected) {
+                // Deseleccionar rúbrica: eliminar rúbrica y TODOS sus indicadores
+                setSelectedIndicadores(prevInd => prevInd.filter(id => !id.startsWith(`${resultadoId}|`)));
+                return prev.filter(id => id !== resultadoId);
+            } else {
+                // Seleccionar rúbrica: agregar rúbrica y TODOS sus indicadores automáticamente
+                if (resultado && resultado.estructura && resultado.estructura.criterios) {
+                    const newIndicators = [];
+                    resultado.estructura.criterios.forEach((criterio, cIndex) => {
+                        criterio.indicadores.forEach((_, iIndex) => {
+                            const path = `$.criterios[${cIndex}].indicadores[${iIndex}]`;
+                            newIndicators.push(`${resultadoId}|${path}`);
+                        });
+                    });
+                    setSelectedIndicadores(prevInd => [...prevInd, ...newIndicators]);
+                }
+                return [...prev, resultadoId];
+            }
+        });
+
+        // Limpiar contexto si se deselecciona la rúbrica actual
         if (newPreguntaContext.id_resultado_aprendizaje === resultadoId) {
             setNewPreguntaContext({ id_resultado_aprendizaje: null, criterio_path: '', indicador_path: '', indicador_nombre: '' });
             setNewPreguntaText('');
         }
+        // También eliminar preguntas asociadas a esta rúbrica
+        setPreguntas(prev => prev.filter(p => p.id_resultado_aprendizaje !== resultadoId));
+    };
+
+    const handleIndicadorToggle = (resultadoId, indicadorPath) => {
+        const compositeKey = `${resultadoId}|${indicadorPath}`;
+        setSelectedIndicadores(prev => {
+            if (prev.includes(compositeKey)) {
+                // Si se desmarca, eliminarlo
+                // Y si era el contexto actual, limpiarlo
+                if (newPreguntaContext.id_resultado_aprendizaje === resultadoId && newPreguntaContext.indicador_path === indicadorPath) {
+                    setNewPreguntaContext({ id_resultado_aprendizaje: null, criterio_path: '', indicador_path: '', indicador_nombre: '' });
+                }
+                // Y eliminar preguntas asociadas a este indicador específico
+                setPreguntas(prevPreguntas => prevPreguntas.filter(p =>
+                    !(p.id_resultado_aprendizaje === resultadoId && p.indicador_path === indicadorPath)
+                ));
+                return prev.filter(k => k !== compositeKey);
+            } else {
+                // Si se marca, agregarlo
+                return [...prev, compositeKey];
+            }
+        });
     };
 
     const handleNewPreguntaContextChange = (id_resultado_aprendizaje, criterio_path, indicador_path, indicador_nombre) => {
-        setNewPreguntaContext({ id_resultado_aprendizaje, criterio_path, indicador_path, indicador_nombre });
-        setNewPreguntaText('');
+        // Solo permitir seleccionar si el indicador está marcado (checked)
+        const compositeKey = `${id_resultado_aprendizaje}|${indicador_path}`;
+        if (selectedIndicadores.includes(compositeKey)) {
+            setNewPreguntaContext({ id_resultado_aprendizaje, criterio_path, indicador_path, indicador_nombre });
+            setNewPreguntaText('');
+        }
     };
 
     const handleRemovePregunta = (indexToRemove) => {
@@ -124,15 +171,14 @@ const EncuestaCreatePage = () => {
         // Preparamos el objeto de datos (payload) para enviar al backend
         const payload = {
             ...encuestaData,
-            // AQUÍ ESTÁ LA CORRECCIÓN: formateamos las fechas antes de enviar
             fecha_inicio: formatDateForMySQL(encuestaData.fecha_inicio),
             fecha_fin: formatDateForMySQL(encuestaData.fecha_fin),
             preguntas: preguntas.map((p, index) => ({ ...p, orden: index + 1, obligatorio: true })),
         };
 
         try {
-            const res = await createEncuesta(payload); // Enviamos el payload con las fechas corregidas
-            
+            const res = await createEncuesta(payload);
+
             if (res.data.encuesta.para_externos) {
                 const invitacionRes = await createEncuestaInvitacion(res.data.encuesta.id);
                 const pin = invitacionRes.data.invitacion.pin;
@@ -185,9 +231,9 @@ const EncuestaCreatePage = () => {
     };
 
     if (loading && allResultados.length === 0) return <p>Cargando datos...</p>;
-    
+
     return (
-        <motion.div 
+        <motion.div
             className="page-container"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -228,7 +274,7 @@ const EncuestaCreatePage = () => {
                         </div>
                         <div className="form-group">
                             <label htmlFor="fecha_fin">Fecha de Fin</label>
-                             <div className="date-picker-wrapper">
+                            <div className="date-picker-wrapper">
                                 <DatePicker
                                     selected={encuestaData.fecha_fin}
                                     onChange={(date) => handleDateChange(date, 'fecha_fin')}
@@ -245,11 +291,11 @@ const EncuestaCreatePage = () => {
 
                 {/* PASO 2: SELECCIONAR RÚBRICAS */}
                 <div className="wizard-step">
-                     <div className="step-header">
+                    <div className="step-header">
                         <span className="step-number">2</span>
                         <h2>Seleccionar Rúbricas y Añadir Preguntas</h2>
                     </div>
-                    <p className="step-description">Selecciona las rúbricas y luego los indicadores específicos a los que asociarás tus preguntas.</p>
+                    <p className="step-description">Selecciona las rúbricas y luego marca los indicadores específicos que deseas evaluar.</p>
                     <div className="rubrica-selection-container">
                         {allResultados.map(resultado => (
                             <div key={resultado.id} className="rubrica-card">
@@ -265,13 +311,26 @@ const EncuestaCreatePage = () => {
                                                 {criterio.indicadores.map((indicador, iIndex) => {
                                                     const criterioPath = `$.criterios[${cIndex}]`;
                                                     const indicadorPath = `$.criterios[${cIndex}].indicadores[${iIndex}]`;
-                                                    const isSelected = newPreguntaContext.indicador_path === indicadorPath;
+                                                    const compositeKey = `${resultado.id}|${indicadorPath}`;
+                                                    const isChecked = selectedIndicadores.includes(compositeKey);
+                                                    const isContextSelected = newPreguntaContext.indicador_path === indicadorPath;
+
                                                     return (
-                                                        <div 
-                                                            key={iIndex} 
-                                                            className={`indicador-item ${isSelected ? 'selected' : ''}`}
-                                                            onClick={() => handleNewPreguntaContextChange(resultado.id, criterioPath, indicadorPath, indicador.nombre)}
+                                                        <div
+                                                            key={iIndex}
+                                                            className={`indicador-item ${isContextSelected ? 'selected' : ''} ${!isChecked ? 'disabled-context' : ''}`}
+                                                            style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: isChecked ? 'pointer' : 'default', opacity: isChecked ? 1 : 0.6 }}
+                                                            onClick={() => isChecked && handleNewPreguntaContextChange(resultado.id, criterioPath, indicadorPath, indicador.nombre)}
                                                         >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isChecked}
+                                                                onChange={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleIndicadorToggle(resultado.id, indicadorPath);
+                                                                }}
+                                                                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                                            />
                                                             <span>{indicador.nombre}</span>
                                                         </div>
                                                     );
@@ -284,17 +343,17 @@ const EncuestaCreatePage = () => {
                         ))}
                     </div>
                 </div>
-                
+
                 {/* PASO 3: AÑADIR PREGUNTA */}
                 <div className="wizard-step">
                     <div className="step-header">
                         <span className="step-number">3</span>
                         <h2>Añadir Nueva Pregunta</h2>
                     </div>
-                     {newPreguntaContext.indicador_nombre ? (
+                    {newPreguntaContext.indicador_nombre ? (
                         <p className="step-description">Añadiendo pregunta para el indicador: <strong>"{newPreguntaContext.indicador_nombre}"</strong></p>
                     ) : (
-                        <p className="step-description">Por favor, selecciona un indicador del paso anterior para poder añadir una pregunta.</p>
+                        <p className="step-description">Por favor, selecciona un indicador marcado del paso anterior para poder añadir una pregunta.</p>
                     )}
                     <div className="add-pregunta-form">
                         <textarea

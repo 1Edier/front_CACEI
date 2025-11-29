@@ -23,19 +23,17 @@ const EncuestaResponderPage = () => {
         egresados_universidad: '',
     });
     const [showEncuestadoForm, setShowEncuestadoForm] = useState(false);
+    const [currentStep, setCurrentStep] = useState(1); // 1: Datos personales, 2: Encuesta
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 let currentEncuesta = null;
-                let currentInvitacion = null;
 
                 if (urlPin) {
                     setIsExternalEncuesta(true);
                     const res = await validateEncuestaInvitacion(urlPin);
-                    // El backend ahora devuelve id_encuesta_base y pin (base), no una nueva invitación.
                     currentEncuesta = res.data.encuesta;
-                    // Guardar el id_encuesta_base para usarlo al momento de enviar el formulario
                     setInvitacionData({ id_encuesta: res.data.id_encuesta_base, pin: res.data.pin });
                     setShowEncuestadoForm(true);
 
@@ -43,6 +41,7 @@ const EncuestaResponderPage = () => {
                     setIsExternalEncuesta(false);
                     const res = await getFullEncuesta(urlId);
                     currentEncuesta = res.data;
+                    setCurrentStep(2); // Skip step 1 for internal surveys
                 } else {
                     Swal.fire({
                         icon: 'error',
@@ -53,7 +52,7 @@ const EncuestaResponderPage = () => {
                     setLoading(false);
                     return;
                 }
-                
+
                 setEncuesta(currentEncuesta);
                 const initialRespuestas = {};
                 currentEncuesta.preguntas.forEach(pregunta => {
@@ -69,13 +68,13 @@ const EncuestaResponderPage = () => {
                     text: 'No se pudo cargar la encuesta. Por favor, intenta de nuevo.',
                     confirmButtonColor: '#3182ce',
                 });
-                navigate('/error', { replace: true }); // Redirigir a una página de error o al inicio
+                navigate('/error', { replace: true });
             } finally {
                 setLoading(false);
             }
         };
         fetchData();
-    }, [urlId, urlPin, navigate]); // Añadir navigate a las dependencias del useEffect
+    }, [urlId, urlPin, navigate]);
 
     const handleRespuestaChange = (preguntaId, nombre_nivel_seleccionado) => {
         setRespuestas(prev => ({ ...prev, [preguntaId]: nombre_nivel_seleccionado }));
@@ -83,17 +82,15 @@ const EncuestaResponderPage = () => {
 
     const handleEncuestadoDataChange = (e) => {
         const { name, value } = e.target;
-        
-        // Validación especial para egresados_universidad
+
         if (name === 'egresados_universidad') {
-            // Solo permitir números positivos
             if (value === '') {
                 setEncuestadoData(prev => ({ ...prev, [name]: '' }));
             } else {
                 const numValue = parseInt(value, 10);
                 if (!isNaN(numValue) && numValue > 0) {
                     setEncuestadoData(prev => ({ ...prev, [name]: numValue }));
-                } else if (numValue <= 0) { // Permitir limpiar el campo o corregir valores negativos/cero
+                } else if (numValue <= 0) {
                     setEncuestadoData(prev => ({ ...prev, [name]: '' }));
                 }
             }
@@ -102,45 +99,46 @@ const EncuestaResponderPage = () => {
         }
     };
 
+    const handleContinueToSurvey = () => {
+        // Validar datos del encuestado
+        if (!encuestadoData.nombre_encuestado.trim() ||
+            !encuestadoData.lugar.trim() ||
+            !encuestadoData.tipo_empresa.trim() ||
+            !encuestadoData.giro.trim() ||
+            !encuestadoData.egresados_universidad) {
+
+            Swal.fire({
+                icon: 'warning',
+                title: 'Datos incompletos',
+                html: '<p style="text-align: left; margin: 1rem 0;">Por favor, completa todos los datos del encuestado:</p><ul style="text-align: left; margin: 0.5rem 0;"><li>Nombre / Empresa</li><li>Lugar</li><li>Tipo de Empresa</li><li>Giro (Actividad principal)</li><li>Número de Egresados de la Universidad (mayor a 0)</li></ul>',
+                confirmButtonColor: '#3182ce',
+                confirmButtonText: 'Entendido',
+            });
+            return;
+        }
+
+        const egresados = parseInt(encuestadoData.egresados_universidad, 10);
+        if (isNaN(egresados) || egresados <= 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Número de egresados inválido',
+                text: 'Por favor, ingresa un número mayor a 0 en el campo de egresados.',
+                confirmButtonColor: '#3182ce',
+                confirmButtonText: 'Entendido',
+            });
+            return;
+        }
+
+        setCurrentStep(2);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        const promises = [];
 
         let currentIdEncuestaBase = null;
 
-        // Validar datos del encuestado si es una encuesta externa
         if (isExternalEncuesta && showEncuestadoForm) {
-            if (!encuestadoData.nombre_encuestado.trim() || 
-                !encuestadoData.lugar.trim() || 
-                !encuestadoData.tipo_empresa.trim() || 
-                !encuestadoData.giro.trim() || 
-                !encuestadoData.egresados_universidad) {
-                
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Datos incompletos',
-                    html: '<p style="text-align: left; margin: 1rem 0;">Por favor, completa todos los datos del encuestado:</p><ul style="text-align: left; margin: 0.5rem 0;"><li>Nombre / Empresa</li><li>Lugar</li><li>Tipo de Empresa</li><li>Giro (Actividad principal)</li><li>Número de Egresados de la Universidad (mayor a 0)</li></ul>',
-                    confirmButtonColor: '#3182ce',
-                    confirmButtonText: 'Entendido',
-                });
-                return;
-            }
-
-            // Validar que egresados sea un número positivo
-            const egresados = parseInt(encuestadoData.egresados_universidad, 10);
-            if (isNaN(egresados) || egresados <= 0) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Número de egresados inválido',
-                    text: 'Por favor, ingresa un número mayor a 0 en el campo de egresados.',
-                    confirmButtonColor: '#3182ce',
-                    confirmButtonText: 'Entendido',
-                });
-                return;
-            }
-            
-            // Si es encuesta externa, necesitamos el id_encuesta_base del estado
             currentIdEncuestaBase = invitacionData?.id_encuesta;
             if (!currentIdEncuestaBase) {
                 Swal.fire({
@@ -173,7 +171,7 @@ const EncuestaResponderPage = () => {
             formattedRespuestas.push({
                 id_encuesta_pregunta: parseInt(preguntaId),
                 nombre_nivel_seleccionado: nombre_nivel_seleccionado,
-                comentario: '', // Si hay un campo de comentario, se debería recoger aquí
+                comentario: '',
             });
         }
 
@@ -190,11 +188,10 @@ const EncuestaResponderPage = () => {
                 };
                 await submitFullEncuestaExterna(fullExternalSurveyData);
             } else {
-                // Para encuestas internas, se sigue el flujo original de una promesa por respuesta
                 const promises = formattedRespuestas.map(resp => submitRespuesta(resp));
                 await Promise.all(promises);
             }
-            
+
             Swal.fire({
                 icon: 'success',
                 title: '¡Encuesta enviada!',
@@ -227,7 +224,8 @@ const EncuestaResponderPage = () => {
 
     if (loading) {
         return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+            <div className="loading-container">
+                <div className="loading-spinner"></div>
                 <p>Cargando encuesta...</p>
             </div>
         );
@@ -235,8 +233,10 @@ const EncuestaResponderPage = () => {
 
     if (!encuesta) {
         return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-                <p>No se encontró la encuesta.</p>
+            <div className="error-container">
+                <div className="error-icon">⚠️</div>
+                <h2>Encuesta no encontrada</h2>
+                <p>No se pudo cargar la encuesta solicitada.</p>
             </div>
         );
     }
@@ -257,115 +257,227 @@ const EncuestaResponderPage = () => {
         return acc;
     }, {});
 
+    const totalPreguntas = encuesta.preguntas.length;
+    const preguntasRespondidas = Object.values(respuestas).filter(r => r !== '').length;
+    const progresoPercentage = totalPreguntas > 0 ? (preguntasRespondidas / totalPreguntas) * 100 : 0;
+
     return (
         <div className="encuesta-responder-container">
-            <h1>{encuesta.nombre}</h1>
-            <p>{encuesta.descripcion}</p>
+            {/* Header con título y descripción */}
+            <div className="encuesta-header">
+                <div className="encuesta-badge">📋 Encuesta</div>
+                <h1>{encuesta.nombre}</h1>
+                <p className="encuesta-descripcion">{encuesta.descripcion}</p>
+            </div>
+
+            {/* Indicador de pasos */}
             {isExternalEncuesta && (
-                <div style={{ padding: '10px', border: '1px solid #eee', borderRadius: '5px', marginBottom: '1rem', backgroundColor: '#f9f9f9' }}>
-                    <p>Respondiendo como: <strong>{encuestadoData.nombre_encuestado || 'Invitado Externo'}</strong></p>
-                    <p style={{fontSize: '0.85em'}}>
-                        Lugar: {encuestadoData.lugar || 'N/A'}, Empresa: {encuestadoData.tipo_empresa || 'N/A'}, Giro: {encuestadoData.giro || 'N/A'}, Egresados: {encuestadoData.egresados_universidad || 'N/A'}
-                    </p>
-                </div>
-            )}
-            
-            {isExternalEncuesta && showEncuestadoForm && (
-                <div className="form-container" style={{marginBottom: '2rem'}}>
-                    <h2>Datos del Encuestado</h2>
-                    <p>Por favor, ingresa tus datos para comenzar la encuesta.</p>
-                    <div className="form-group">
-                        <label htmlFor="nombre_encuestado">Nombre / Empresa</label>
-                        <input
-                            type="text"
-                            id="nombre_encuestado"
-                            name="nombre_encuestado"
-                            value={encuestadoData.nombre_encuestado}
-                            onChange={handleEncuestadoDataChange}
-                            required
-                        />
+                <div className="steps-indicator">
+                    <div className={`step ${currentStep >= 1 ? 'active' : ''} ${currentStep > 1 ? 'completed' : ''}`}>
+                        <div className="step-number">{currentStep > 1 ? '✓' : '1'}</div>
+                        <div className="step-label">Datos Personales</div>
                     </div>
-                    <div className="form-group">
-                        <label htmlFor="lugar">Lugar</label>
-                        <input
-                            type="text"
-                            id="lugar"
-                            name="lugar"
-                            value={encuestadoData.lugar}
-                            onChange={handleEncuestadoDataChange}
-                            required
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="tipo_empresa">Tipo de Empresa</label>
-                        <input
-                            type="text"
-                            id="tipo_empresa"
-                            name="tipo_empresa"
-                            value={encuestadoData.tipo_empresa}
-                            onChange={handleEncuestadoDataChange}
-                            required
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="giro">Giro (Actividad principal)</label>
-                        <input
-                            type="text"
-                            id="giro"
-                            name="giro"
-                            value={encuestadoData.giro}
-                            onChange={handleEncuestadoDataChange}
-                            required
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="egresados_universidad">Número de Egresados de la Universidad</label>
-                        <input
-                            type="number"
-                            id="egresados_universidad"
-                            name="egresados_universidad"
-                            value={encuestadoData.egresados_universidad}
-                            onChange={handleEncuestadoDataChange}
-                            min="1"
-                            step="1"
-                            required
-                        />
+                    <div className="step-divider"></div>
+                    <div className={`step ${currentStep >= 2 ? 'active' : ''}`}>
+                        <div className="step-number">2</div>
+                        <div className="step-label">Responder Encuesta</div>
                     </div>
                 </div>
             )}
 
-            <form onSubmit={handleSubmit}>
-                {Object.values(preguntasAgrupadas).map((grupo, groupIndex) => (
-                    <div key={groupIndex} className="encuesta-group">
-                        {grupo.preguntas.map(pregunta => (
-                            <div key={pregunta.id} className="pregunta-item-responder">
-                                <label style={{ fontWeight: 'bold', marginBottom: '0.5rem', display: 'block' }}>
-                                    {pregunta.texto} {pregunta.obligatorio && <span style={{ color: 'red' }}>*</span>}
-                                </label>
-                                <div className="opciones-pregunta-container">
-                                    {pregunta.niveles_desempeno && pregunta.niveles_desempeno.map((nivelNombre, index) => (
-                                        <div key={index} className="opcion-radio-item">
-                                            <input
-                                                type="radio"
-                                                id={`pregunta-${pregunta.id}-nivel-${index}`}
-                                                name={`pregunta-${pregunta.id}`}
-                                                value={nivelNombre}
-                                                checked={respuestas[pregunta.id] === nivelNombre}
-                                                onChange={(e) => handleRespuestaChange(pregunta.id, e.target.value)}
-                                                required={pregunta.obligatorio}
-                                            />
-                                            <label htmlFor={`pregunta-${pregunta.id}-nivel-${index}`}>{nivelNombre}</label>
-                                        </div>
-                                    ))}
+            {/* Paso 1: Datos del Encuestado */}
+            {isExternalEncuesta && showEncuestadoForm && currentStep === 1 && (
+                <div className="encuestado-form-card">
+                    <div className="card-header">
+                        <h2>👤 Datos del Encuestado</h2>
+                        <p>Por favor, completa tus datos para comenzar la encuesta.</p>
+                    </div>
+
+                    <div className="form-grid">
+                        <div className="form-group-modern">
+                            <label htmlFor="nombre_encuestado">
+                                <span className="label-icon">🏢</span>
+                                Nombre / Empresa
+                            </label>
+                            <input
+                                type="text"
+                                id="nombre_encuestado"
+                                name="nombre_encuestado"
+                                value={encuestadoData.nombre_encuestado}
+                                onChange={handleEncuestadoDataChange}
+                                placeholder="Ej: Empresa XYZ S.A."
+                                required
+                            />
+                        </div>
+
+                        <div className="form-group-modern">
+                            <label htmlFor="lugar">
+                                <span className="label-icon">📍</span>
+                                Lugar
+                            </label>
+                            <input
+                                type="text"
+                                id="lugar"
+                                name="lugar"
+                                value={encuestadoData.lugar}
+                                onChange={handleEncuestadoDataChange}
+                                placeholder="Ej: Ciudad de México"
+                                required
+                            />
+                        </div>
+
+                        <div className="form-group-modern">
+                            <label htmlFor="tipo_empresa">
+                                <span className="label-icon">🏭</span>
+                                Tipo de Empresa
+                            </label>
+                            <input
+                                type="text"
+                                id="tipo_empresa"
+                                name="tipo_empresa"
+                                value={encuestadoData.tipo_empresa}
+                                onChange={handleEncuestadoDataChange}
+                                placeholder="Ej: Privada, Pública, Mixta"
+                                required
+                            />
+                        </div>
+
+                        <div className="form-group-modern">
+                            <label htmlFor="giro">
+                                <span className="label-icon">💼</span>
+                                Giro (Actividad principal)
+                            </label>
+                            <input
+                                type="text"
+                                id="giro"
+                                name="giro"
+                                value={encuestadoData.giro}
+                                onChange={handleEncuestadoDataChange}
+                                placeholder="Ej: Tecnología, Manufactura"
+                                required
+                            />
+                        </div>
+
+                        <div className="form-group-modern full-width">
+                            <label htmlFor="egresados_universidad">
+                                <span className="label-icon">🎓</span>
+                                Número de Egresados de la Universidad
+                            </label>
+                            <input
+                                type="number"
+                                id="egresados_universidad"
+                                name="egresados_universidad"
+                                value={encuestadoData.egresados_universidad}
+                                onChange={handleEncuestadoDataChange}
+                                min="1"
+                                step="1"
+                                placeholder="Ingresa un número mayor a 0"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        className="btn btn-primary btn-continue"
+                        onClick={handleContinueToSurvey}
+                    >
+                        Continuar a la Encuesta →
+                    </button>
+                </div>
+            )}
+
+            {/* Paso 2: Formulario de Encuesta */}
+            {currentStep === 2 && (
+                <>
+                    {/* Barra de progreso */}
+                    <div className="progress-section">
+                        <div className="progress-header">
+                            <span className="progress-label">
+                                Progreso: {preguntasRespondidas} de {totalPreguntas} preguntas
+                            </span>
+                            <span className="progress-percentage">{Math.round(progresoPercentage)}%</span>
+                        </div>
+                        <div className="progress-bar">
+                            <div
+                                className="progress-fill"
+                                style={{ width: `${progresoPercentage}%` }}
+                            ></div>
+                        </div>
+                    </div>
+
+                    {/* Resumen de datos (si es encuesta externa) */}
+                    {isExternalEncuesta && (
+                        <div className="encuestado-summary">
+                            <div className="summary-icon">✅</div>
+                            <div className="summary-content">
+                                <strong>Respondiendo como:</strong> {encuestadoData.nombre_encuestado}
+                                <div className="summary-details">
+                                    {encuestadoData.lugar} • {encuestadoData.tipo_empresa} • {encuestadoData.giro} • {encuestadoData.egresados_universidad} egresados
                                 </div>
                             </div>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="encuesta-form-modern">
+                        {Object.values(preguntasAgrupadas).map((grupo, groupIndex) => (
+                            <div key={groupIndex} className="pregunta-group-card">
+                                {grupo.preguntas.map((pregunta, pIndex) => (
+                                    <div key={pregunta.id} className="pregunta-item-modern">
+                                        <div className="pregunta-header">
+                                            <span className="pregunta-numero">Pregunta {groupIndex * grupo.preguntas.length + pIndex + 1}</span>
+                                            {pregunta.obligatorio && <span className="badge-required">Obligatoria</span>}
+                                        </div>
+
+                                        <label className="pregunta-texto">
+                                            {pregunta.texto}
+                                        </label>
+
+                                        <div className="opciones-container-modern">
+                                            {pregunta.niveles_desempeno && pregunta.niveles_desempeno.map((nivelNombre, index) => (
+                                                <label
+                                                    key={index}
+                                                    className={`opcion-radio-modern ${respuestas[pregunta.id] === nivelNombre ? 'selected' : ''}`}
+                                                    htmlFor={`pregunta-${pregunta.id}-nivel-${index}`}
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        id={`pregunta-${pregunta.id}-nivel-${index}`}
+                                                        name={`pregunta-${pregunta.id}`}
+                                                        value={nivelNombre}
+                                                        checked={respuestas[pregunta.id] === nivelNombre}
+                                                        onChange={(e) => handleRespuestaChange(pregunta.id, e.target.value)}
+                                                        required={pregunta.obligatorio}
+                                                    />
+                                                    <span className="radio-custom"></span>
+                                                    <span className="radio-label">{nivelNombre}</span>
+                                                    {respuestas[pregunta.id] === nivelNombre && (
+                                                        <span className="checkmark">✓</span>
+                                                    )}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         ))}
-                    </div>
-                ))}
-                <button type="submit" className="btn btn-primary" disabled={loading}>
-                    {loading ? 'Enviando...' : 'Enviar Encuesta'}
-                </button>
-            </form>
+
+                        <button type="submit" className="btn btn-primary btn-submit-modern" disabled={loading}>
+                            {loading ? (
+                                <>
+                                    <span className="spinner-small"></span>
+                                    Enviando...
+                                </>
+                            ) : (
+                                <>
+                                    <span>✓</span>
+                                    Enviar Encuesta
+                                </>
+                            )}
+                        </button>
+                    </form>
+                </>
+            )}
         </div>
     );
 };
