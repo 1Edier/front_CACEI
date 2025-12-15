@@ -1,0 +1,220 @@
+/* src/styles/EncuestaCreatePage.css */
+
+.form-wizard {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.wizard-step {
+    background-color: var(--surface-color);
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    border: 1px solid var(--border-color);
+}
+
+.step-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.step-number {
+    width: 36px;
+    height: 36px;
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.step-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.step-description {
+    margin-top: -1rem;
+    margin-bottom: 1.5rem;
+    color: var(--secondary-color);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+.grid-col-span-2 {
+    grid-column: span 2;
+}
+
+/* Estilos para el DatePicker */
+.date-picker-wrapper {
+    position: relative;
+    width: 100%;
+}
+.date-picker-input {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    padding-right: 2.5rem; /* Espacio para el ícono */
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    font-family: var(--font-family);
+}
+.date-picker-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--secondary-color);
+    pointer-events: none;
+}
+/* Estilos para que el calendario se vea bien */
+.react-datepicker-popper {
+    z-index: 10;
+}
+.react-datepicker {
+    font-family: var(--font-family) !important;
+    border-radius: var(--border-radius) !important;
+    border-color: var(--border-color) !important;
+}
+.react-datepicker__header {
+    background-color: var(--primary-color) !important;
+    border-bottom: none !important;
+}
+.react-datepicker__current-month, .react-datepicker-time__header, .react-datepicker__day-name {
+    color: white !important;
+}
+.react-datepicker__day--selected, .react-datepicker__day--keyboard-selected {
+    background-color: var(--primary-color) !important;
+}
+
+/* Estilos para selección de Rúbricas */
+.rubrica-selection-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+.rubrica-card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+.rubrica-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.rubrica-header:hover {
+    background-color: #eff3f7;
+}
+.rubrica-header input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    pointer-events: none; /* El click se maneja en el div padre */
+}
+
+.indicadores-list {
+    padding: 1rem;
+}
+.criterio-group h4 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+.indicador-item {
+    padding: 0.75rem 1rem;
+    border-radius: var(--border-radius);
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border: 1px solid transparent;
+}
+.indicador-item:hover {
+    background-color: #eff3f7;
+}
+.indicador-item.selected {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-hover);
+}
+
+/* Estilos para añadir pregunta */
+.add-pregunta-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.add-pregunta-form textarea {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    font-family: var(--font-family);
+    resize: vertical;
+}
+.add-pregunta-form button {
+    align-self: flex-start;
+}
+
+/* Estilos para la lista de resumen de preguntas */
+.preguntas-resumen-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.pregunta-resumen-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+}
+.pregunta-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+.pregunta-numero {
+    font-weight: 600;
+    color: #ffffff;
+}
+.pregunta-texto {
+    font-weight: 500;
+}
+.pregunta-contexto {
+    font-size: 0.8rem;
+    color: var(--secondary-color);
+    margin-top: 0.25rem;
+}
+
+.form-submit-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
+/* Clases para SweetAlert */
+.swal-link-container {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background-color: #f0f0f0;
+    border-radius: var(--border-radius);
+    word-break: break-all;
+}
