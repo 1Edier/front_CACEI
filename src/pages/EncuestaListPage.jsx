@@ -50,51 +50,56 @@ const EncuestaListPage = () => {
         try {
             const allRows = [];
             // Encabezados del CSV Global
-            const header = [
-                "ID Encuesta", "Nombre Encuesta", "Fecha Inicio", "Fecha Fin",
-                "Fecha Respuesta", "Nombre Encuestado", "Lugar", "Tipo Empresa", "Giro", "Egresados", "Comentarios",
-                "Pregunta", "Respuesta", "Nivel Seleccionado"
+            const headers = [
+                'Pregunta',
+                'Encuestado',
+                'Nivel Seleccionado',
+                'Comentario',
+                'Lugar',
+                'Tipo Empresa',
+                'Giro',
+                'Egresados Universidad',
+                'Fecha Respuesta'
             ];
-            allRows.push(header.join(","));
+            allRows.push(headers.join(','));
 
             // Iterar sobre cada encuesta para obtener sus resultados
             for (const encuesta of encuestas) {
                 try {
-                    const { data: resultados } = await getEncuestaResultados(encuesta.id);
+                    const { data } = await getEncuestaResultados(encuesta.id);
+
+                    // La API devuelve un objeto con la propiedad 'resultados'
+                    const resultados = data.resultados || [];
 
                     if (resultados && resultados.length > 0) {
                         resultados.forEach(res => {
-                            // Datos base de la encuesta y el encuestado
-                            const baseInfo = [
-                                `"${encuesta.id}"`,
-                                `"${(encuesta.nombre || '').replace(/"/g, '""')}"`,
-                                `"${(encuesta.fecha_inicio || '').split('T')[0]}"`,
-                                `"${(encuesta.fecha_fin || '').split('T')[0]}"`,
-                                `"${new Date(res.fecha_respuesta).toLocaleDateString()}"`,
-                                `"${(res.encuestado_nombre || 'Anónimo').replace(/"/g, '""')}"`,
-                                `"${(res.lugar || '').replace(/"/g, '""')}"`,
-                                `"${(res.tipo_empresa || '').replace(/"/g, '""')}"`,
-                                `"${(res.giro || '').replace(/"/g, '""')}"`,
-                                `"${(res.egresados || '').replace(/"/g, '""')}"`,
-                                `"${(res.comentarios || '').replace(/"/g, '""')}"`
-                            ];
+                            // Determinar el nombre del encuestado
+                            const nombreEncuestado = res.nombre_completo ||
+                                (res.invitacion_pin ? `Invitado (${res.invitacion_pin})` : 'Anónimo');
 
-                            // Iterar sobre las respuestas de este encuestado
-                            if (res.respuestas && res.respuestas.length > 0) {
-                                res.respuestas.forEach(r => {
-                                    const row = [
-                                        ...baseInfo,
-                                        `"${(r.pregunta_texto || '').replace(/"/g, '""')}"`,
-                                        `"${(r.respuesta_valor || '').replace(/"/g, '""')}"`,
-                                        `"${(r.nivel_seleccionado || '').replace(/"/g, '""')}"`
-                                    ];
-                                    allRows.push(row.join(","));
-                                });
-                            } else {
-                                // Si no hay respuestas detalladas, al menos guardar la info del encuestado
-                                const row = [...baseInfo, "", "", ""];
-                                allRows.push(row.join(","));
-                            }
+                            // Crear una fila por cada respuesta del encuestado
+                            // Escapar comillas dobles y envolver cada campo en comillas
+                            const preguntaTexto = res.pregunta_texto || '';
+                            const nivelSeleccionado = res.nombre_nivel_seleccionado || 'N/A';
+                            const comentario = res.comentario || '-';
+                            const lugar = res.lugar || '-';
+                            const tipoEmpresa = res.tipo_empresa || '-';
+                            const giro = res.giro || '-';
+                            const egresados = res.egresados_universidad || '-';
+                            const fechaRespuesta = new Date(res.fecha_respuesta).toLocaleDateString('es-MX');
+
+                            const row = [
+                                `"${preguntaTexto.replace(/"/g, '""')}"`,
+                                `"${nombreEncuestado.replace(/"/g, '""')}"`,
+                                `"${nivelSeleccionado.replace(/"/g, '""')}"`,
+                                `"${comentario.replace(/"/g, '""')}"`,
+                                `"${lugar.replace(/"/g, '""')}"`,
+                                `"${tipoEmpresa.replace(/"/g, '""')}"`,
+                                `"${giro.replace(/"/g, '""')}"`,
+                                `"${egresados.toString().replace(/"/g, '""')}"`,
+                                `"${fechaRespuesta}"`
+                            ];
+                            allRows.push(row.join(','));
                         });
                     }
                 } catch (err) {
@@ -103,8 +108,8 @@ const EncuestaListPage = () => {
                 }
             }
 
-            // Generar y descargar el archivo
-            const csvContent = "\uFEFF" + allRows.join("\n");
+            // Generar y descargar el archivo con saltos de línea apropiados para Windows
+            const csvContent = "\uFEFF" + allRows.join("\r\n");
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");

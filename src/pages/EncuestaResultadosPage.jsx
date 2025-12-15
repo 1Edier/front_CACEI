@@ -111,14 +111,14 @@ const EncuestaResultadosPage = () => {
     // Función para filtrar resultados por búsqueda
     const filtrarResultados = (respuestas) => {
         if (!searchTerm.trim()) return respuestas;
-        
+
         return respuestas.filter(r => {
-            const nombreEncuestado = r.usuario_nombre || 
+            const nombreEncuestado = r.usuario_nombre ||
                 (r.invitacion_pin ? `Invitado (${r.invitacion_pin})` : 'Anónimo');
             return nombreEncuestado.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                   (r.lugar && r.lugar.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                   (r.tipo_empresa && r.tipo_empresa.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                   (r.giro && r.giro.toLowerCase().includes(searchTerm.toLowerCase()));
+                (r.lugar && r.lugar.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (r.tipo_empresa && r.tipo_empresa.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (r.giro && r.giro.toLowerCase().includes(searchTerm.toLowerCase()));
         });
     };
 
@@ -126,7 +126,7 @@ const EncuestaResultadosPage = () => {
     const descargarCSV = () => {
         // Preparar datos para CSV
         const csvData = [];
-        
+
         // Headers
         const headers = [
             'Pregunta',
@@ -144,11 +144,11 @@ const EncuestaResultadosPage = () => {
         // Datos
         encuesta.preguntas.forEach(pregunta => {
             const preguntaResults = groupedResults[pregunta.id] || { respuestas: [] };
-            
+
             preguntaResults.respuestas.forEach(r => {
-                const nombreEncuestado = r.usuario_nombre || 
+                const nombreEncuestado = r.nombre_completo ||
                     (r.invitacion_pin ? `Invitado (${r.invitacion_pin})` : 'Anónimo');
-                
+
                 const row = [
                     `"${pregunta.texto.replace(/"/g, '""')}"`, // Escapar comillas
                     `"${nombreEncuestado.replace(/"/g, '""')}"`,
@@ -164,12 +164,12 @@ const EncuestaResultadosPage = () => {
             });
         });
 
-        // Crear blob y descargar
-        const csvContent = csvData.join('\n');
+        // Crear blob y descargar con BOM UTF-8 y saltos de línea Windows
+        const csvContent = "\uFEFF" + csvData.join("\r\n");
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
-        
+
         link.setAttribute('href', url);
         link.setAttribute('download', `resultados_encuesta_${encuesta.nombre.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
         link.style.visibility = 'hidden';
@@ -266,10 +266,10 @@ const EncuestaResultadosPage = () => {
                 </div>
 
                 {/* Barra de Herramientas */}
-                <div style={{ 
-                    marginBottom: '2rem', 
-                    display: 'flex', 
-                    gap: '1rem', 
+                <div style={{
+                    marginBottom: '2rem',
+                    display: 'flex',
+                    gap: '1rem',
                     flexWrap: 'wrap',
                     alignItems: 'center',
                     justifyContent: 'space-between'
@@ -309,7 +309,7 @@ const EncuestaResultadosPage = () => {
                 {/* Barra de Búsqueda (solo en vista tabla) */}
                 {vistaActual === 'tabla' && (
                     <div style={{ marginBottom: '2rem' }}>
-                        <div style={{ 
+                        <div style={{
                             position: 'relative',
                             maxWidth: '500px'
                         }}>
@@ -339,7 +339,7 @@ const EncuestaResultadosPage = () => {
                             />
                         </div>
                         {searchTerm && (
-                            <p style={{ 
+                            <p style={{
                                 marginTop: '0.5rem',
                                 fontSize: '0.9rem',
                                 color: '#6c757d'
@@ -523,7 +523,7 @@ const EncuestaResultadosPage = () => {
                                                             {filtrarResultados(preguntaResults.respuestas).map((r, idx) => (
                                                                 <tr key={idx}>
                                                                     <td>
-                                                                        {r.usuario_nombre ||
+                                                                        {r.nombre_completo ||
                                                                             (r.invitacion_pin ? `Invitado (${r.invitacion_pin})` : 'Anónimo')}
                                                                     </td>
                                                                     <td>

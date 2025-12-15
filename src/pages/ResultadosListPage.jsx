@@ -54,7 +54,7 @@ const ResultadosListPage = () => {
                     await deleteResultado(id);
                     // Actualizar el estado para remover la rúbrica de la UI
                     setResultados(prevResultados => prevResultados.filter(r => r.id !== id));
-                    
+
                     // Mostrar una alerta de éxito
                     MySwal.fire(
                         '¡Eliminado!',
@@ -103,7 +103,7 @@ const ResultadosListPage = () => {
                                     <Link to={`/resultados/${res.id}`} className="btn btn-secondary">
                                         <FiEye /> Ver
                                     </Link>
-                                    
+
                                     {['administrador', 'coordinador'].includes(user?.rol) && (
                                         <Link to={`/resultados/${res.id}/editar`} className="btn">
                                             <FiEdit3 /> Editar
@@ -117,9 +117,9 @@ const ResultadosListPage = () => {
                                     )}
 
                                     {['administrador', 'auditor'].includes(user?.rol) && (
-                                         <Link to={`/resultados/${res.id}/historial`} className="btn">
+                                        <Link to={`/resultados/${res.id}/historial`} className="btn">
                                             <FiClock /> Historial
-                                         </Link>
+                                        </Link>
                                     )}
                                 </td>
                             </tr>
