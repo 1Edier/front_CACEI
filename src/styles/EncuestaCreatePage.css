@@ -218,3 +218,84 @@
     border-radius: var(--border-radius);
     word-break: break-all;
 }
+
+/* ========================================
+   RESPONSIVE STYLES
+   ======================================== */
+
+@media (max-width: 768px) {
+    .wizard-step {
+        padding: 1.5rem 1rem;
+    }
+
+    .step-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .step-number {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+    }
+
+    .step-header h2 {
+        font-size: 1.3rem;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .grid-col-span-2 {
+        grid-column: span 1;
+    }
+
+    .pregunta-resumen-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .pregunta-info {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .form-submit-container {
+        justify-content: stretch;
+    }
+
+    .form-submit-container button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .wizard-step {
+        padding: 1rem;
+    }
+
+    .step-header h2 {
+        font-size: 1.2rem;
+    }
+
+    .step-description {
+        font-size: 0.9rem;
+    }
+
+    .rubrica-header {
+        padding: 0.75rem;
+    }
+
+    .indicador-item {
+        padding: 0.6rem 0.8rem;
+        font-size: 0.9rem;
+    }
+
+    .add-pregunta-form textarea {
+        font-size: 0.95rem;
+    }
+}

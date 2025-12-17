@@ -153,10 +153,69 @@ const ResultadoFormPage = () => {
         }
     };
 
+    // --- VALIDACIONES ---
+    const validateRubrica = () => {
+        // Validar que haya al menos un criterio
+        if (formData.estructura.criterios.length === 0) {
+            setError('Debes agregar al menos un criterio antes de guardar la rúbrica.');
+            return false;
+        }
+
+        // Validar que cada criterio tenga nombre
+        const criteriosSinNombre = formData.estructura.criterios.some(c => !c.nombre.trim());
+        if (criteriosSinNombre) {
+            setError('Todos los criterios deben tener un nombre.');
+            return false;
+        }
+
+        // Validar que cada criterio tenga al menos un indicador
+        const criteriosSinIndicadores = formData.estructura.criterios.some(c => c.indicadores.length === 0);
+        if (criteriosSinIndicadores) {
+            setError('Cada criterio debe tener al menos un indicador.');
+            return false;
+        }
+
+        // Validar que cada indicador tenga nombre y descriptores completos
+        for (let i = 0; i < formData.estructura.criterios.length; i++) {
+            const criterio = formData.estructura.criterios[i];
+
+            // Validar nombre del indicador
+            const indicadoresSinNombre = criterio.indicadores.some(ind => !ind.nombre.trim());
+            if (indicadoresSinNombre) {
+                setError(`El criterio "${criterio.nombre}" tiene indicadores sin nombre.`);
+                return false;
+            }
+
+            // Validar descriptores de cada indicador
+            for (let j = 0; j < criterio.indicadores.length; j++) {
+                const indicador = criterio.indicadores[j];
+
+                // Verificar que todos los descriptores estén completos
+                for (const nivel of formData.estructura.niveles) {
+                    const nivelKey = nivel.toLowerCase().replace(/ /g, '_');
+                    const descriptor = indicador.descriptores[nivelKey];
+
+                    if (!descriptor || !descriptor.trim()) {
+                        setError(`El indicador "${indicador.nombre}" del criterio "${criterio.nombre}" debe tener una descripción para el nivel "${nivel}".`);
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
+    };
+
     // --- MANEJADOR DE ENVÍO ---
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+
+        // Validar antes de enviar
+        if (!validateRubrica()) {
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -178,9 +237,64 @@ const ResultadoFormPage = () => {
 
     const activeCriterio = formData.estructura.criterios[activeCriterioIndex];
 
+    // Calcular estado de validación
+    const totalCriterios = formData.estructura.criterios.length;
+    const criteriosValidos = formData.estructura.criterios.filter(c => {
+        if (!c.nombre.trim() || c.indicadores.length === 0) return false;
+
+        // Verificar que todos los indicadores tengan nombre y descriptores completos
+        return c.indicadores.every(ind => {
+            if (!ind.nombre.trim()) return false;
+
+            // Verificar que todos los descriptores estén completos
+            return formData.estructura.niveles.every(nivel => {
+                const nivelKey = nivel.toLowerCase().replace(/ /g, '_');
+                return ind.descriptores[nivelKey]?.trim().length > 0;
+            });
+        });
+    }).length;
+    const totalIndicadores = formData.estructura.criterios.reduce((acc, c) => acc + c.indicadores.length, 0);
+    const isFormValid = totalCriterios > 0 && criteriosValidos === totalCriterios;
+
     return (
         <div className="form-container" style={{ maxWidth: '1200px' }}>
             <h2 className="form-title">{isEditing ? 'Editar Rúbrica' : 'Crear Nueva Rúbrica'}</h2>
+
+            {/* Indicador de Estado */}
+            {totalCriterios > 0 && (
+                <div style={{
+                    marginBottom: '1.5rem',
+                    padding: '1rem 1.5rem',
+                    backgroundColor: isFormValid ? '#D4EDDA' : '#FFF3CD',
+                    border: `2px solid ${isFormValid ? '#C3E6CB' : '#FFE69C'}`,
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '1rem'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <span style={{ fontSize: '2rem' }}>
+                            {isFormValid ? '✅' : '⚠️'}
+                        </span>
+                        <div>
+                            <div style={{ fontWeight: '600', color: isFormValid ? '#155724' : '#856404' }}>
+                                Estado de la Rúbrica: {isFormValid ? 'Lista para Guardar' : 'Incompleta'}
+                            </div>
+                            <div style={{ fontSize: '0.9rem', color: isFormValid ? '#155724' : '#856404', marginTop: '0.25rem' }}>
+                                {criteriosValidos} de {totalCriterios} criterio{totalCriterios !== 1 ? 's' : ''} completo{criteriosValidos !== 1 ? 's' : ''} • {totalIndicadores} indicador{totalIndicadores !== 1 ? 'es' : ''} en total
+                            </div>
+                        </div>
+                    </div>
+                    {!isFormValid && (
+                        <div style={{ fontSize: '0.85rem', color: '#856404', textAlign: 'right' }}>
+                            Completa todos los criterios con al menos un indicador
+                        </div>
+                    )}
+                </div>
+            )}
+
             <form onSubmit={handleSubmit}>
                 {/* --- DATOS GENERALES --- */}
                 <div className="form-group">
@@ -214,20 +328,49 @@ const ResultadoFormPage = () => {
                             {/* Panel Lateral de Navegación */}
                             <div className="rubrica-sidebar">
                                 <div className="sidebar-title">Criterios</div>
-                                {formData.estructura.criterios.map((criterio, index) => (
-                                    <button
-                                        key={index}
-                                        type="button"
-                                        className={`rubrica-tab-button ${activeCriterioIndex === index ? 'active' : ''}`}
-                                        onClick={() => setActiveCriterioIndex(index)}
-                                    >
-                                        <div className="tab-number">{index + 1}</div>
-                                        <div className="tab-info">
-                                            <div className="tab-name">{criterio.nombre || 'Sin nombre'}</div>
-                                            <div className="tab-meta">{criterio.indicadores.length} indicador{criterio.indicadores.length !== 1 ? 'es' : ''}</div>
-                                        </div>
-                                    </button>
-                                ))}
+                                {formData.estructura.criterios.map((criterio, index) => {
+                                    const hasIndicadores = criterio.indicadores.length > 0;
+                                    const hasName = criterio.nombre.trim().length > 0;
+                                    const isValid = hasIndicadores && hasName;
+
+                                    return (
+                                        <button
+                                            key={index}
+                                            type="button"
+                                            className={`rubrica-tab-button ${activeCriterioIndex === index ? 'active' : ''}`}
+                                            onClick={() => setActiveCriterioIndex(index)}
+                                            style={{
+                                                borderLeft: !isValid ? '4px solid #F56565' : '4px solid transparent'
+                                            }}
+                                        >
+                                            <div className="tab-number">
+                                                {index + 1}
+                                                {!isValid && (
+                                                    <span style={{
+                                                        position: 'absolute',
+                                                        top: '-4px',
+                                                        right: '-4px',
+                                                        width: '12px',
+                                                        height: '12px',
+                                                        backgroundColor: '#F56565',
+                                                        borderRadius: '50%',
+                                                        border: '2px solid white'
+                                                    }} />
+                                                )}
+                                            </div>
+                                            <div className="tab-info">
+                                                <div className="tab-name">
+                                                    {criterio.nombre || 'Sin nombre'}
+                                                    {!hasName && <span style={{ color: '#F56565', marginLeft: '0.5rem' }}>⚠️</span>}
+                                                </div>
+                                                <div className="tab-meta" style={{ color: !hasIndicadores ? '#F56565' : undefined }}>
+                                                    {criterio.indicadores.length} indicador{criterio.indicadores.length !== 1 ? 'es' : ''}
+                                                    {!hasIndicadores && ' ⚠️ Requerido'}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
                             </div>
 
                             {/* Contenido del Criterio Activo */}
@@ -280,8 +423,23 @@ const ResultadoFormPage = () => {
                                                 <div className="indicadores-list">
                                                     {activeCriterio.indicadores.map((indicador, indIndex) => {
                                                         const isExpanded = expandedIndicadores[`${activeCriterioIndex}-${indIndex}`];
+
+                                                        // Calcular descriptores completos
+                                                        const totalNiveles = formData.estructura.niveles.length;
+                                                        const descriptoresCompletos = formData.estructura.niveles.filter(nivel => {
+                                                            const nivelKey = nivel.toLowerCase().replace(/ /g, '_');
+                                                            return indicador.descriptores[nivelKey]?.trim().length > 0;
+                                                        }).length;
+                                                        const todosCompletos = descriptoresCompletos === totalNiveles;
+
                                                         return (
-                                                            <div key={indIndex} className="indicador-accordion">
+                                                            <div
+                                                                key={indIndex}
+                                                                className="indicador-accordion"
+                                                                style={{
+                                                                    border: !todosCompletos ? '2px solid #FC8181' : '1px solid #e2e8f0'
+                                                                }}
+                                                            >
                                                                 <div className="indicador-accordion-header">
                                                                     <button
                                                                         type="button"
@@ -292,6 +450,14 @@ const ResultadoFormPage = () => {
                                                                         <span className="indicador-number">Indicador {indIndex + 1}</span>
                                                                         <span className="indicador-name-preview">
                                                                             {indicador.nombre || 'Sin nombre'}
+                                                                        </span>
+                                                                        <span style={{
+                                                                            marginLeft: 'auto',
+                                                                            fontSize: '0.85rem',
+                                                                            color: todosCompletos ? '#38A169' : '#F56565',
+                                                                            fontWeight: '600'
+                                                                        }}>
+                                                                            {descriptoresCompletos}/{totalNiveles} niveles
                                                                         </span>
                                                                     </button>
                                                                     <button
@@ -316,19 +482,72 @@ const ResultadoFormPage = () => {
                                                                             />
                                                                         </div>
 
-                                                                        <h5 className="descriptores-title">Descriptores por Nivel</h5>
+                                                                        <h5 className="descriptores-title">
+                                                                            Descriptores por Nivel
+                                                                            <span style={{
+                                                                                fontSize: '0.8rem',
+                                                                                fontWeight: '500',
+                                                                                color: '#E53E3E',
+                                                                                marginLeft: '0.5rem'
+                                                                            }}>
+                                                                                * Todos los niveles son requeridos
+                                                                            </span>
+                                                                        </h5>
                                                                         <div className="descriptores-grid">
                                                                             {formData.estructura.niveles.map((nivel) => {
                                                                                 const nivelKey = nivel.toLowerCase().replace(/ /g, '_');
+                                                                                const hasValue = indicador.descriptores[nivelKey]?.trim().length > 0;
+
                                                                                 return (
-                                                                                    <div key={nivelKey} className="descriptor-item">
-                                                                                        <label className="descriptor-label">{nivel}</label>
+                                                                                    <div
+                                                                                        key={nivelKey}
+                                                                                        className="descriptor-item"
+                                                                                        style={{
+                                                                                            border: !hasValue ? '2px solid #FC8181' : '1px solid #e2e8f0',
+                                                                                            position: 'relative'
+                                                                                        }}
+                                                                                    >
+                                                                                        <label className="descriptor-label" style={{
+                                                                                            display: 'flex',
+                                                                                            alignItems: 'center',
+                                                                                            justifyContent: 'space-between'
+                                                                                        }}>
+                                                                                            {nivel}
+                                                                                            {hasValue ? (
+                                                                                                <span style={{ fontSize: '1rem' }}>✓</span>
+                                                                                            ) : (
+                                                                                                <span style={{
+                                                                                                    fontSize: '0.7rem',
+                                                                                                    backgroundColor: 'rgba(255,255,255,0.3)',
+                                                                                                    padding: '0.2rem 0.5rem',
+                                                                                                    borderRadius: '10px'
+                                                                                                }}>
+                                                                                                    Requerido
+                                                                                                </span>
+                                                                                            )}
+                                                                                        </label>
                                                                                         <textarea
                                                                                             value={indicador.descriptores[nivelKey] || ''}
                                                                                             onChange={(e) => handleDescriptorChange(activeCriterioIndex, indIndex, nivelKey, e.target.value)}
-                                                                                            placeholder={`Descripción para nivel ${nivel.toLowerCase()}`}
+                                                                                            placeholder={`Descripción para nivel ${nivel.toLowerCase()} *`}
                                                                                             rows="3"
+                                                                                            style={{
+                                                                                                borderColor: !hasValue ? '#FC8181' : undefined
+                                                                                            }}
                                                                                         />
+                                                                                        {!hasValue && (
+                                                                                            <div style={{
+                                                                                                position: 'absolute',
+                                                                                                top: '0.5rem',
+                                                                                                right: '0.5rem',
+                                                                                                width: '10px',
+                                                                                                height: '10px',
+                                                                                                backgroundColor: '#FC8181',
+                                                                                                borderRadius: '50%',
+                                                                                                border: '2px solid white',
+                                                                                                boxShadow: '0 0 4px rgba(252, 129, 129, 0.5)'
+                                                                                            }} />
+                                                                                        )}
                                                                                     </div>
                                                                                 );
                                                                             })}
@@ -371,10 +590,35 @@ const ResultadoFormPage = () => {
                     )}
                 </div>
 
-                <button type="submit" className="btn btn-primary btn-submit" disabled={loading}>
+                {error && (
+                    <div className="form-feedback error" style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>
+                        ⚠️ {error}
+                    </div>
+                )}
+
+                <button
+                    type="submit"
+                    className="btn btn-primary btn-submit"
+                    disabled={loading || formData.estructura.criterios.length === 0}
+                    title={formData.estructura.criterios.length === 0 ? 'Debes agregar al menos un criterio con un indicador' : ''}
+                >
                     {loading ? 'Guardando...' : 'Guardar Rúbrica'}
                 </button>
-                {error && <p className="error-message">{error}</p>}
+
+                {formData.estructura.criterios.length === 0 && (
+                    <div style={{
+                        marginTop: '1rem',
+                        padding: '1rem',
+                        backgroundColor: '#FFF3CD',
+                        border: '1px solid #FFE69C',
+                        borderRadius: '8px',
+                        color: '#856404',
+                        fontSize: '0.95rem',
+                        textAlign: 'center'
+                    }}>
+                        💡 Recuerda: Debes agregar al menos un criterio con un indicador antes de guardar la rúbrica.
+                    </div>
+                )}
             </form>
         </div>
     );

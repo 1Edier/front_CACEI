@@ -1,22 +1,14 @@
 import { useAuth } from '../hooks/useAuth';
 import { FiCheckCircle, FiBook, FiPieChart, FiUsers, FiClipboard, FiBarChart2, FiTrendingUp, FiAward } from 'react-icons/fi';
+import '../styles/HomePage.css';
 
 const HomePage = () => {
     const { user } = useAuth();
 
     return (
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
+        <div className="home-container">
             {/* Header Section con color primario */}
-            <div style={{
-                background: 'var(--primary-color)',
-                padding: '3rem 2rem',
-                borderRadius: '16px',
-                marginBottom: '2.5rem',
-                textAlign: 'center',
-                boxShadow: '0 10px 30px rgba(0, 150, 136, 0.3)',
-                position: 'relative',
-                overflow: 'hidden'
-            }}>
+            <div className="home-header">
                 <div style={{
                     position: 'absolute',
                     top: '-50px',
@@ -73,12 +65,7 @@ const HomePage = () => {
             </div>
 
             {/* Stats Cards */}
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '1.5rem',
-                marginBottom: '2.5rem'
-            }}>
+            <div className="stats-grid">
                 {[
                     { icon: <FiClipboard />, title: 'Resultados', count: 'Gestiona', color: '#009688', bg: '#E0F2F1' },
                     { icon: <FiBarChart2 />, title: 'Encuestas', count: 'Crea', color: '#00796B', bg: '#B2DFDB' },
@@ -135,12 +122,7 @@ const HomePage = () => {
             </div>
 
             {/* Feature Cards Grid */}
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-                gap: '2rem',
-                marginBottom: '2.5rem'
-            }}>
+            <div className="features-grid">
                 {/* Card 1: Gestión de Rúbricas */}
                 <div
                     style={{

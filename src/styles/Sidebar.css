@@ -1,14 +1,57 @@
 /* src/styles/Sidebar.css */
 .sidebar {
   width: 260px;
-  background-color: var(--primary-color); /* Se actualizará al turquesa automáticamente */
-  color: rgba(255, 255, 255, 0.75); /* << CAMBIADO >> Texto blanco semi-transparente para mejor legibilidad */
+  background-color: var(--primary-color);
+  color: rgba(255, 255, 255, 0.75);
   display: flex;
   flex-direction: column;
   height: 100vh;
   position: sticky;
   top: 0;
-  transition: width 0.3s ease;
+  transition: transform 0.3s ease, width 0.3s ease;
+  z-index: 1000;
+  flex-shrink: 0;
+}
+
+.sidebar-close {
+  display: none;
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  z-index: 1001;
+}
+
+.sidebar-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    transform: translateX(-100%);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .sidebar-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-close {
+    display: flex;
+  }
 }
 
 .sidebar-header {

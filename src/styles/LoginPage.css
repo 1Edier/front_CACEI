@@ -59,3 +59,112 @@
   text-align: left;
   color: #1A202C;
 }
+
+/* ========================================
+   RESPONSIVE STYLES FOR LOGIN PAGE
+   ======================================== */
+
+/* Tablets y pantallas medianas */
+@media (max-width: 1024px) {
+  .login-wrapper {
+    max-width: 750px;
+  }
+
+  .login-promo-panel h1 {
+    font-size: 1.6rem;
+  }
+
+  .login-form-panel .form-title {
+    font-size: 1.75rem;
+  }
+}
+
+/* Tablets pequeñas */
+@media (max-width: 768px) {
+  .login-wrapper {
+    flex-direction: column;
+    max-width: 500px;
+  }
+
+  .login-promo-panel {
+    padding: 2rem 1.5rem;
+  }
+
+  .login-promo-panel .logo {
+    max-width: 180px;
+    margin-bottom: 1.5rem;
+  }
+
+  .login-promo-panel h1 {
+    font-size: 1.4rem;
+  }
+
+  .login-promo-panel p {
+    font-size: 0.95rem;
+  }
+
+  .login-form-panel {
+    padding: 2rem 1.5rem;
+  }
+
+  .login-form-panel .form-title {
+    font-size: 1.5rem;
+  }
+}
+
+/* Móviles */
+@media (max-width: 480px) {
+  .login-page-container {
+    padding: 1rem;
+  }
+
+  .login-wrapper {
+    max-width: 100%;
+    margin: 0;
+  }
+
+  .login-promo-panel {
+    padding: 1.5rem 1rem;
+  }
+
+  .login-promo-panel .logo {
+    max-width: 150px;
+    margin-bottom: 1rem;
+  }
+
+  .login-promo-panel h1 {
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .login-promo-panel p {
+    font-size: 0.9rem;
+  }
+
+  .login-form-panel {
+    padding: 1.5rem 1rem;
+  }
+
+  .login-form-panel .form-title {
+    font-size: 1.35rem;
+    text-align: center;
+  }
+
+  .form-group label {
+    font-size: 0.85rem;
+  }
+
+  .form-group input {
+    padding: 0.7rem 0.9rem;
+    font-size: 0.95rem;
+  }
+
+  .btn {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+  }
+
+  .form-link {
+    font-size: 0.85rem;
+  }
+}
